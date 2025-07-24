@@ -12,5 +12,16 @@ return {
 	---@type neotree.Config?
 	opts = {
 		-- fill any relevant options here
+		window = {
+			position = "float",
+			mappings = {
+				["c"] = {
+					"copy",
+					config = {
+						show_path = "relative", -- "none", "relative", "absolute"
+					},
+				},
+			},
+		},
 	},
 }
