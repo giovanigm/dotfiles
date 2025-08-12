@@ -27,7 +27,11 @@ return { -- Autocompletion
 				--   end,
 				-- },
 			},
-			opts = {},
+			opts = {
+				history = true,
+				region_check_events = "InsertEnter",
+				delete_check_events = "TextChanged,InsertLeave",
+			},
 		},
 		"folke/lazydev.nvim",
 	},
