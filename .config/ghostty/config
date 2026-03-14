@@ -1,3 +1,6 @@
 font-size = 16
 maximize = true
 confirm-close-surface = false
+theme = catppuccin-macchiato.conf
+background-opacity = 0.5
+background-blur = true
