@@ -25,7 +25,7 @@ return {
           enable = true,
           open_win_config = function()
             local HEIGHT_RATIO = 0.8 -- You can change this
-            local WIDTH_RATIO = 0.5 -- You can change this too
+            local WIDTH_RATIO = 0.5  -- You can change this too
             local screen_w = vim.opt.columns:get()
             local screen_h = vim.opt.lines:get() - vim.opt.cmdheight:get()
             local window_w = screen_w * WIDTH_RATIO
