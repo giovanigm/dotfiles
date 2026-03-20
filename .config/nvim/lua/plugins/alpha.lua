@@ -1,0 +1,28 @@
+return {
+	-- "goolord/alpha-nvim",
+	-- lazy = false,
+	-- dependencies = {
+	-- 	"nvim-tree/nvim-web-devicons",
+	-- },
+	-- config = function()
+	-- 	local alpha = require("alpha")
+	-- 	local dashboard = require("alpha.themes.dashboard")
+	-- 	alpha.setup(dashboard.config)
+	--
+	-- 	-- vim.api.nvim_create_autocmd("VimEnter", {
+	-- 	-- 	callback = function()
+	-- 	-- 		local arg = vim.fn.argv(0)
+	-- 	-- 		if arg == "" or vim.fn.isdirectory(arg) == 1 then
+	-- 	-- 			alpha.start(false, dashboard.config)
+	-- 	-- 		end
+	-- 	-- 	end,
+	-- 	-- })
+	-- 	--
+	-- 	-- vim.api.nvim_create_autocmd("User", {
+	-- 	-- 	pattern = "AlphaReady",
+	-- 	-- 	callback = function()
+	-- 	-- 		pcall(vim.api.nvim_clear_autocmds, { event = "WinResized", group = "alpha" })
+	-- 	-- 	end,
+	-- 	-- })
+	-- end,
+}
