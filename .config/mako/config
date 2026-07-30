@@ -1,0 +1,4 @@
+default-timeout=5000
+
+[urgency=high]
+border-color=#fab387
