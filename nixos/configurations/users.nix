@@ -37,6 +37,9 @@
       android-tools
       gnumake
 
+      # System monitoring
+      bottom
+
       # Editor
       neovim
 
@@ -52,6 +55,7 @@
       waybar
       hyprlock
       networkmanagerapplet
+      networkmanager_dmenu
       hyprpolkitagent
 
       # zen-browser not in nixpkgs — install via flatpak:

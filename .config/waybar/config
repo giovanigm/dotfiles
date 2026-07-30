@@ -140,7 +140,7 @@
     "tooltip-format-wifi": "{ifname}\n{essid}\n{signalStrength}% \n{frequency} GHz\n󰇚 {bandwidthDownBits}\n󰕒 {bandwidthUpBits}",
     "tooltip-format-ethernet": "{ifname}\n󰇚 {bandwidthDownBits} \n󰕒 {bandwidthUpBits}",
     "format-icons": ["󰤫", "󰤟", "󰤢", "󰤥", "󰤨"],
-    "on-click": "nm-connection-editor",
+    "on-click": "networkmanager_dmenu",
     "states": {
       "normal": 25
     }
