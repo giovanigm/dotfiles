@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   users.mutableUsers = false;
@@ -6,7 +6,7 @@
   users.users."giovani" = {
     isNormalUser = true;
     description = "giovani";
-    extraGroups = [ "networkmanager" "wheel" "docker" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "i2c" ];
     shell = pkgs.zsh;
     hashedPasswordFile = "/persist/passwords/giovani";
     packages = with pkgs; [
@@ -18,7 +18,11 @@
       # Apps
       bitwarden-desktop
       brave
-      discord
+      (discord.overrideAttrs (old: {
+        postInstall = (old.postInstall or "") + ''
+          gappsWrapperArgs+=("--add-flags" "--enable-features=WebRTCPipeWireCapturer")
+        '';
+      }))
       obsidian
       spotify
 
@@ -39,6 +43,7 @@
 
       # System monitoring
       bottom
+      ddcutil
 
       # Editor
       neovim
@@ -58,8 +63,7 @@
       networkmanager_dmenu
       hyprpolkitagent
 
-      # zen-browser not in nixpkgs — install via flatpak:
-      #   flatpak install io.github.zen_browser.zen
+      inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     ];
   };
 }

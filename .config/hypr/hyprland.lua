@@ -38,6 +38,9 @@ hl.monitor({
 local terminal    = "ghostty"
 local fileManager = "dolphin"
 local menu        = "rofi -show drun"
+local browser     = "zen"
+local music       = "spotify"
+
 
 
 -------------------
@@ -54,8 +57,9 @@ hl.on("hyprland.start", function ()
   -- nm-applet disabled — network info is in Waybar
   -- hl.exec_cmd("nm-applet --indicator")
   hl.exec_cmd("waybar")
-  hl.exec_cmd("awww-daemon")
-  hl.exec_cmd("~/.config/hypr/scripts/random-wallpaper.sh")
+  -- hl.exec_cmd("awww-daemon")
+  -- hl.exec_cmd("~/.config/hypr/scripts/random-wallpaper.sh")
+  hl.exec_cmd("mpvpaper -vs -o 'no-audio loop' '*' ~/Videos/Wallpapers/night-city-pixel-moewalls-com.mp4")
 end)
 
 
@@ -284,8 +288,10 @@ hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/toggle-rofi.sh"))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))    -- dwindle only
-hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("~/.config/hypr/scripts/random-wallpaper.sh next"))
+-- hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("~/.config/hypr/scripts/random-wallpaper.sh next"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("~/.config/hypr/scripts/reload-waybar.sh"))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
+hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(music))
 
 -- Alt+Tab: cycle through windows, maximizing each
 hl.bind("SUPER + Tab", function()
@@ -298,7 +304,7 @@ hl.bind("SUPER + SHIFT + Tab", function()
 end)
 
 -- Lock screen
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qylock-lock-wrapped pixel-night-city"))
 
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
@@ -328,7 +334,7 @@ hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
 
 -- Show Desktop: hide all windows / restore them
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/.config/hypr/scripts/toggle-desktop.sh"))
+-- hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/.config/hypr/scripts/toggle-desktop.sh"))
 
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
@@ -338,13 +344,13 @@ hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
--- Laptop multimedia keys for volume and LCD brightness
+-- Multimedia keys: volume (PipeWire) and external monitor brightness (DDC/CI)
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
 hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
 hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("~/.config/hypr/scripts/monitor-brightness.sh up"),   { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("~/.config/hypr/scripts/monitor-brightness.sh down"), { locked = true, repeating = true })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })

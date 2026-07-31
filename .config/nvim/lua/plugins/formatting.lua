@@ -6,6 +6,8 @@ return {
       lua = { "stylua" },
       go = { "gofumpt", "goimports-reviser", "golines" },
       clj = { "cljfmt" },
+      json = { "prettierd" },
+      jsonc = { "prettierd" },
       -- css = { "prettier" },
       -- html = { "prettier" },
     },

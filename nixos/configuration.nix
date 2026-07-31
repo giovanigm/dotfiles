@@ -6,14 +6,17 @@
     ./configurations/boot.nix
     ./configurations/networking.nix
     ./configurations/locale.nix
+    ./configurations/qylock.nix
     ./configurations/desktop.nix
     ./configurations/nvidia.nix
+    ./configurations/ddcutil.nix
     ./configurations/audio.nix
     ./configurations/docker.nix
     ./configurations/fonts.nix
     ./configurations/printing.nix
     ./configurations/users.nix
     ./configurations/programs.nix
+    ./configurations/nix-ld.nix
     ./configurations/system.nix
   ];
 

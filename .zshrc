@@ -3,6 +3,12 @@
 # Deployed by 'make deploy' (symlink from ~/.zshrc)
 # =============================================================================
 
+# ── fvm (Flutter Version Management) ─────────────────────────────────────────
+# After `fvm install 3.44 && fvm global 3.44`, this makes the global Flutter
+# SDK available on PATH.
+export FVM_CACHE_PATH="$HOME/.fvm"
+export PATH="$FVM_CACHE_PATH/default/bin:$PATH"
+
 alias nixos-rebuild-switch="sudo nixos-rebuild switch --flake /etc/nixos#nixos"
 alias nixos-rebuild-boot="sudo nixos-rebuild boot --flake /etc/nixos#nixos"
 

@@ -5,11 +5,12 @@
   "height": 28,
   "spacing": 0,
   "reload_style_on_change": true,
-  "margin-top": 24,
-  "margin-left": 24,
-  "margin-right": 24,
+  "margin-top": 12,
+  "margin-left": 12,
+  "margin-right": 12,
   "margin-bottom": 0,
   "modules-left": [
+    "custom/left-cap",
     "hyprland/workspaces",
     "hyprland/submap",
     "hyprland/window"
@@ -29,6 +30,10 @@
     "custom/spacer3",
     "clock"
   ],
+  "custom/left-cap": {
+    "format": " ",
+    "tooltip": false
+  },
   "custom/spacer1": {
     "format": "",
     "tooltip": false

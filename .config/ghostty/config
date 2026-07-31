@@ -1,7 +1,7 @@
 font-size = 16
 maximize = true
 confirm-close-surface = false
-background-opacity = 1
+background-opacity = 0.8
 background-blur = true
 cursor-style-blink = false
 theme = light:catppuccin-mocha,dark:catppuccin-mocha

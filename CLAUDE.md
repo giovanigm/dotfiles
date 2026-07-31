@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 This is a **dotfiles repository** — not an application. It manages user configuration for a NixOS workstation with Hyprland, Neovim, Waybar, Ghostty, and other tools. Deployment works through two independent mechanisms:
-- **`make deploy`** — symlinks `.zshrc` to `~/.zshrc` and every directory under `.config/` into `~/.config/`, backing up existing files
+- **`make deploy`** — symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, and every directory under `.config/` into `~/.config/`, backing up existing files
 - **`nixos-rebuild-switch`** — shell function (in `.zshrc`) that runs `sudo nixos-rebuild switch --flake /etc/nixos#nixos`
 
 The NixOS system directory (`nixos/`) is also symlinked from `/etc/nixos` via a systemd tmpfiles rule (set in `configurations/system.nix`).
@@ -14,7 +14,7 @@ The NixOS system directory (`nixos/`) is also symlinked from `/etc/nixos` via a 
 
 | Command | What it does | Where |
 |---------|-------------|-------|
-| `make deploy` | Symlink `.zshrc` and all `.config/*` dirs into `~/` (backups existing) | Makefile |
+| `make deploy` | Symlink `.zshrc`, `.claude/statusline.sh`, and all `.config/*` dirs (backups existing) | Makefile |
 | `make setup-nixos` | One-time setup: symlink `/etc/nixos` → repo | Makefile |
 | `nixos-rebuild-switch` | Rebuild and switch NixOS system | `.zshrc` |
 | `nixos-rebuild-boot` | Rebuild NixOS and update boot entries (no live switch) | `.zshrc` |
@@ -58,7 +58,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 
 ### Dotfiles (`make deploy`)
 
-The `Makefile` symlinks `.zshrc` to `~/.zshrc` and iterates over `.config/*` to create symlinks in `~/.config/`. Each subdirectory is a standalone app config:
+The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, and iterates over `.config/*` to create symlinks in `~/.config/`. Each subdirectory is a standalone app config:
 
 - **`.config/nvim/`** — Neovim with lazy.nvim. `init.lua` bootstraps lazy.nvim then loads `vim-options`, plugin specs, `autocmds`, and `mappings`. Plugins are split under `lua/plugins/` (one file per plugin/concern). Has a VSCode compatibility layer at the top of `init.lua` for Clojure/Calva workflows.
 - **`.config/hypr/`** — Hyprland compositor. `hyprland.lua` is the main config (Lua API). Requires `catppuccin-mocha.lua` for the color palette. Scripts in `scripts/`: `random-wallpaper.sh` (picks from wallpaper dir, sets with awww), `focus-or-launch.sh` (launch or focus+maximize an app), `toggle-rofi.sh`, `toggle-desktop.sh`.
@@ -67,6 +67,7 @@ The `Makefile` symlinks `.zshrc` to `~/.zshrc` and iterates over `.config/*` to 
 - **`.config/wezterm/`** — Legacy terminal config (maximized, Github Dark theme, font-size 16).
 - **`.config/mako/`** — Notification daemon. 5-second auto-dismiss, peach border on high urgency.
 - **`.config/yay/`** — AUR helper security hooks. Scans PKGBUILDs for dangerous patterns (curl | bash, rm -rf /, chmod 777), flags SKIP checksums, warns about unfamiliar source domains, and logs all installs.
+- **`.claude/statusline.sh`** — Claude Code statusline. Renders folder, git branch, model name, token usage, and credits in the terminal status bar. Catppuccin Mocha themed.
 
 ### Key conventions
 

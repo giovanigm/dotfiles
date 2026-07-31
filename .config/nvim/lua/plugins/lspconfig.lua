@@ -3,8 +3,6 @@ return {
     "mason-org/mason.nvim",
     lazy = false,
     opts = {
-      PATH = "skip",
-
       ui = {
         icons = {
           package_pending = " ",
@@ -21,15 +19,24 @@ return {
     lazy = false,
     dependencies = { "mason-org/mason.nvim" },
     opts = {
-      auto_install = true,
-      ensure_installed = { "ts_ls", "gopls" },
+      ensure_installed = { "ts_ls", "gopls", "lua_ls", "jsonls" },
+    },
+  },
+  {
+    "WhoIsSethDaniel/mason-tool-installer.nvim",
+    lazy = false,
+    dependencies = { "mason-org/mason.nvim" },
+    opts = {
+      ensure_installed = { "prettierd", "stylua", "gofumpt", "goimports-reviser", "golines" },
+      auto_update = false,
+      run_on_start = true,
     },
   },
   {
     "neovim/nvim-lspconfig",
     lazy = false,
     config = function()
-      local servers = { "gopls", "ts_ls" }
+      local servers = { "gopls", "ts_ls", "lua_ls", "jsonls" }
       vim.lsp.enable(servers)
 
       vim.lsp.config("gopls", {
@@ -50,6 +57,35 @@ return {
           -- tsserver = {
           --     root_dir = lspconfig.util.root_finder({ "tsconfig.json", "package.json" }, { upward = true })(),
           -- }
+        },
+      })
+
+      vim.lsp.config("lua_ls", {
+        settings = {
+          Lua = {
+            runtime = {
+              version = "LuaJIT",
+            },
+            diagnostics = {
+              globals = { "vim" },
+            },
+            workspace = {
+              library = vim.api.nvim_get_runtime_file("", true),
+              checkThirdParty = false,
+            },
+            telemetry = {
+              enable = false,
+            },
+          },
+        },
+      })
+
+      vim.lsp.config("jsonls", {
+        settings = {
+          json = {
+            schemas = require("schemastore").json.schemas(),
+            validate = { enable = true },
+          },
         },
       })
 

@@ -20,6 +20,18 @@ deploy:
 	fi; \
 	ln -sfn "$$zshrc_src" "$$zshrc_link"; \
 	echo ".zshrc → $$zshrc_link"
+	@# Symlink .claude/statusline.sh
+	@mkdir -p $(HOME)/.claude
+	@statusline_link="$(HOME)/.claude/statusline.sh"; \
+	statusline_src="$(CURDIR)/.claude/statusline.sh"; \
+	if [ -L "$$statusline_link" ]; then \
+		rm "$$statusline_link"; \
+	elif [ -f "$$statusline_link" ]; then \
+		echo "Backing up $$statusline_link → $${statusline_link}.bak"; \
+		mv "$$statusline_link" "$${statusline_link}.bak"; \
+	fi; \
+	ln -sfn "$$statusline_src" "$$statusline_link"; \
+	echo "statusline.sh → $$statusline_link"
 	@# Symlink .config dirs
 	@for dir in $(CURDIR)/.config/*; do \
 		target="$$(basename "$$dir")"; \
