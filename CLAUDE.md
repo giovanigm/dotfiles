@@ -39,22 +39,26 @@ There are no tests, no linting, no build step — this is purely configuration f
 | `configurations/boot.nix` | Systemd-boot + Windows 11 dual-boot (separate ESP, manual entry) |
 | `configurations/networking.nix` | Hostname + NetworkManager |
 | `configurations/locale.nix` | Timezone, locale/i18n, keyboard layout, Fcitx5 input method |
-| `configurations/desktop.nix` | SDDM + KDE Plasma 6 + Hyprland (UWSM), xdg-portal, env vars, GPU wait |
+| `configurations/desktop.nix` | SDDM + Hyprland (UWSM), xdg-portal, env vars, GPU wait |
 | `configurations/nvidia.nix` | NVIDIA RTX 3080: proprietary driver, open kernel module, modesetting, power mgmt |
 | `configurations/audio.nix` | PipeWire (ALSA, PulseAudio, JACK, WirePlumber) |
 | `configurations/docker.nix` | Docker daemon with weekly auto-prune |
 | `configurations/fonts.nix` | Font packages (JetBrains Mono Nerd Font) |
+| `configurations/packages/apps.nix` | Global GUI apps, media/gaming, desktop environment, Zen Browser |
+| `configurations/packages/dev.nix` | Global editor + dev/DB tools, Android CLI |
+| `configurations/packages/sdks.nix` | Global runtimes + package managers (Python, Node, Go, Flutter, pnpm) |
+| `configurations/packages/cli.nix` | Global core CLI utilities + system monitoring |
 | `configurations/printing.nix` | CUPS printing |
-| `configurations/users.nix` | User account (giovani), groups, shell, password, packages |
+| `configurations/users.nix` | User account (giovani), groups, shell, password |
 | `configurations/programs.nix` | Git, Direnv, Firefox, Zsh (Oh My Zsh, autosuggestions, syntax highlighting) |
-| `configurations/system.nix` | System packages, hyprpolkitagent service, impermanence tmpfiles, nixpkgs config |
+| `configurations/system.nix` | Nixpkgs config, hyprpolkitagent service, impermanence tmpfiles |
 | `hardware-configuration.nix` | Filesystem layout: tmpfs root (`/`), `/persist` (ext4), bind mounts for `/nix` and `/home`, ESP for `/boot` |
 | `persistence.nix` | Impermanence module: which directories/files persist across tmpfs wipes |
-| `home.nix` | Home Manager user config for `giovani`. Currently minimal — most user packages are in `configurations/users.nix` |
+| `home.nix` | Home Manager user config for `giovani`. Imports `home/sdks.nix` (Go + uv module configs). All packages are now system-wide in `configurations/packages/*` |
 
 **Flake inputs**: `nixpkgs` (nixos-26.05), `nixpkgs-master` (unfree), `impermanence`, `home-manager` (follows nixpkgs).
 
-**Key system details**: Dual-boot with Windows 11 (separate ESP, manual systemd-boot entry with sort-key), NVIDIA RTX 3080 with proprietary driver + open kernel module + modesetting, SDDM + KDE Plasma 6 **and** Hyprland (UWSM launcher).
+**Key system details**: Dual-boot with Windows 11 (separate ESP, manual systemd-boot entry with sort-key), NVIDIA RTX 3080 with proprietary driver + open kernel module + modesetting, SDDM + Hyprland (UWSM launcher).
 
 ### Dotfiles (`make deploy`)
 

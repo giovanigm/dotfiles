@@ -7,32 +7,8 @@
 { pkgs, ... }:
 
 {
-  # ── Global runtimes + package managers ────────────────────────
-  home.packages = [
-    # Python 3.12 → provides `python3` / `python3.12`.
-    # nixpkgs ships a PEP 668 EXTERNALLY-MANAGED marker, so `pip install`
-    # outside a venv fails by design. Use uv (below) for pip-style installs.
-    pkgs.python312
-
-    # Node.js 22 with bundled `npm` → provides `node` / `npm`.
-    pkgs.nodejs_22
-
-    # fvm — Flutter Version Management (like asdf for Flutter).
-    # Use `fvm install 3.44` to install Flutter 3.44, then `fvm use 3.44`
-    # per project (managed via `.fvmrc` or `fvm use`).
-    pkgs.fvm
-
-    # Required by Flutter to extract the Dart SDK.
-    pkgs.unzip
-
-    # pnpm 10 (top-level; runs on the default node 24 since nixpkgs 25.x —
-    # it is no longer in the `nodejs_22.pkgs` set). For a strict node-22
-    # match, replace with: pkgs.pnpm.override { nodejs = pkgs.nodejs_22; }
-    pkgs.pnpm
-
-    # Needed by mason.nvim to build Go packages with cgo (gopls, gofumpt, etc.)
-    pkgs.gcc
-  ];
+  # Runtime packages (python, node, fvm, etc.) were moved to
+  # configurations/packages/sdks.nix as environment.systemPackages.
 
   # ── Go ────────────────────────────────────────────────────────
   # Installs `go` and manages `~/.config/go/env` declaratively.

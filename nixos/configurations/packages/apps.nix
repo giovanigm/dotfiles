@@ -1,0 +1,46 @@
+# nixos/configurations/packages/apps.nix — GUI apps + desktop environment
+
+{ config, pkgs, lib, inputs, ... }:
+
+{
+  # ── GUI Applications ──────────────────────────────────────
+  environment.systemPackages = with pkgs; [
+    ghostty
+    claude-code
+    bitwarden-desktop
+    brave
+    (discord.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        gappsWrapperArgs+=("--add-flags" "--enable-features=WebRTCPipeWireCapturer")
+      '';
+    }))
+    obsidian
+    spotify
+
+    # Zen Browser (flake input)
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+
+    # ── Media / Gaming ──────────────────────────────────────
+    vlc
+    steam
+    gimp
+    qbittorrent
+    qalculate-gtk
+    pavucontrol
+
+    # ── Desktop environment ─────────────────────────────────
+    awww
+    cava
+    waybar
+    hyprlock
+    networkmanagerapplet
+    networkmanager_dmenu
+    hyprpolkitagent
+
+    # ── Launcher ────────────────────────────────────────────
+    rofi
+
+    # ── Notification daemon (prevents Electron apps from freezing) ──
+    mako
+  ];
+}

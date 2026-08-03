@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────
 # NixOS Dotfiles Installer
 # Post-install configuration for impermanence-based NixOS
-# with Hyprland + KDE Plasma 6 + NVIDIA RTX 3080
+# with Hyprland + NVIDIA RTX 3080
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -1019,7 +1019,7 @@ print_summary() {
     echo -e "${CYAN}${BOLD}├──────────────────────────────────────────────┤${NC}"
     echo -e "${CYAN}${BOLD}│${NC}  ${BOLD}Next steps:${NC}                                 ${CYAN}${BOLD}│${NC}"
     echo -e "${CYAN}${BOLD}│${NC}  • Reboot to apply all changes               ${CYAN}${BOLD}│${NC}"
-    echo -e "${CYAN}${BOLD}│${NC}  • Select Hyprland or Plasma at SDDM          ${CYAN}${BOLD}│${NC}"
+    echo -e "${CYAN}${BOLD}│${NC}  • Select Hyprland at SDDM                     ${CYAN}${BOLD}│${NC}"
     echo -e "${CYAN}${BOLD}│${NC}  • Run: make rebuild  (update system config)  ${CYAN}${BOLD}│${NC}"
     echo -e "${CYAN}${BOLD}│${NC}  • Run: make deploy   (update dotfiles)       ${CYAN}${BOLD}│${NC}"
     echo -e "${CYAN}${BOLD}└──────────────────────────────────────────────┘${NC}"
@@ -1101,7 +1101,7 @@ Usage: install.sh [OPTIONS]
 
 NixOS Dotfiles Installer v${SCRIPT_VERSION}
 Configures a freshly-installed NixOS system with impermanence,
-Hyprland, KDE Plasma 6, and all app dotfiles.
+Hyprland and all app dotfiles.
 
 Options:
   -y, --yes          Auto-confirm all prompts (non-interactive)

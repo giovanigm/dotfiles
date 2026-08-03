@@ -27,6 +27,8 @@
       curl                  # libcurl.so.4
       libssh                # libssh.so.4
       libsodium             # libsodium.so.23
+      nss                   # libnss3.so, libsmime3.so (Android emulator)
+      nspr                  # libnspr4.so, libplds4.so, libplc4.so (Android emulator)
 
       # ── System libraries ──────────────────────────────────
       systemd               # libsystemd.so.0
@@ -35,6 +37,8 @@
       acl                   # libacl.so.1
       attr                  # libattr.so.1
       keyutils              # libkeyutils.so.1
+      expat                 # libexpat.so.1 (Android emulator QEMU)
+      libbsd                # libbsd.so.0 (Android emulator launcher)
 
       # ── GLib / GIO ────────────────────────────────────────
       glib                  # libglib-2.0.so.0, libgio-2.0.so.0, libgobject-2.0.so.0
@@ -43,6 +47,7 @@
       # ── Graphics / GPU (Flutter uses Skia via OpenGL/Vulkan) ─
       libGL                 # libGL.so.1
       vulkan-loader         # libvulkan.so.1
+      libpng                # libpng16.so.16 (Android emulator QEMU)
       libdrm                # libdrm.so.2
       libva                 # libva.so.2
 
@@ -74,9 +79,11 @@
       libxft                # libXft.so.2
       libxt                 # libXt.so.6
       libxtst               # libXtst.so.6
+      libxkbfile            # libxkbfile.so.1 (Android emulator QEMU)
 
       # ── Audio (Flutter apps may need this) ────────────────
       alsa-lib              # libasound.so.2
+      libpulseaudio         # libpulse.so.0 (Android emulator QEMU)
       pipewire              # libpipewire-0.3.so.0
 
       # ── ICU (Unicode, often needed) ───────────────────────

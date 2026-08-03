@@ -4,9 +4,7 @@
   services.xserver.enable = true;
 
   services.displayManager.sddm.enable = true;
-  services.desktopManager.plasma6.enable = true;
-
-  # ── Hyprland (try alongside Plasma) ────────────────────────
+  # ── Hyprland ──────────────────────────────────────────────
   programs.hyprland = {
     enable = true;
     withUWSM = true;       # Recommended launcher on NixOS 24.11+

@@ -5,6 +5,17 @@
   home.homeDirectory = "/home/giovani";
   home.stateVersion = "26.05";
 
+  # ── Cursor theme (Breeze Dark) ───────────────────────────
+  home.pointerCursor = {
+    gtk.enable = true;
+    name = "breeze_cursors";
+    package = pkgs.kdePackages.breeze;
+    size = 24;
+  };
+
+  # ── GTK (required for cursor + theming) ──────────────────
+  gtk.enable = true;
+
   programs.mpvpaper = {
     enable = true;
     package = pkgs.mpvpaper.overrideAttrs (old: {
