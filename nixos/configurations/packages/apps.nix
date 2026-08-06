@@ -7,6 +7,9 @@
   environment.systemPackages = with pkgs; [
     ghostty
     claude-code
+    nautilus
+    ffmpegthumbnailer
+    sushi
     bitwarden-desktop
     brave
     (discord.overrideAttrs (old: {
@@ -23,6 +26,7 @@
     # ── Media / Gaming ──────────────────────────────────────
     vlc
     steam
+    cemu
     gimp
     qbittorrent
     qalculate-gtk
@@ -36,6 +40,12 @@
     networkmanagerapplet
     networkmanager_dmenu
     hyprpolkitagent
+
+    # ── Icons ───────────────────────────────────────────────
+    catppuccin-papirus-folders
+
+    # ── Image viewer ────────────────────────────────────────
+    imv
 
     # ── Launcher ────────────────────────────────────────────
     rofi

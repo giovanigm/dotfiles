@@ -32,6 +32,20 @@ deploy:
 	fi; \
 	ln -sfn "$$statusline_src" "$$statusline_link"; \
 	echo "statusline.sh → $$statusline_link"
+	@# Symlink .local/bin scripts (per-file, preserves existing files in ~/.local/bin)
+	@mkdir -p $(HOME)/.local/bin
+	@for f in $(CURDIR)/.local/bin/*; do \
+		target="$$(basename "$$f")"; \
+		link="$(HOME)/.local/bin/$$target"; \
+		if [ -L "$$link" ]; then \
+			rm "$$link"; \
+		elif [ -f "$$link" ] || [ -d "$$link" ]; then \
+			echo "Backing up $$link → $${link}.bak"; \
+			mv "$$link" "$${link}.bak"; \
+		fi; \
+		ln -sfn "$$f" "$$link"; \
+		echo "$$target → $$link"; \
+	done
 	@# Symlink .config dirs
 	@for dir in $(CURDIR)/.config/*; do \
 		target="$$(basename "$$dir")"; \

@@ -14,7 +14,30 @@
   };
 
   # ── GTK (required for cursor + theming) ──────────────────
-  gtk.enable = true;
+  gtk = {
+    enable = true;
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.catppuccin-papirus-folders;
+    };
+  };
+
+  # ── Default apps ────────────────────────────────────────
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "image/jpeg" = [ "imv-dir.desktop" ];
+      "image/png" = [ "imv-dir.desktop" ];
+      "image/gif" = [ "imv-dir.desktop" ];
+      "image/webp" = [ "imv-dir.desktop" ];
+      "image/svg+xml" = [ "imv-dir.desktop" ];
+      "image/tiff" = [ "imv-dir.desktop" ];
+      "image/bmp" = [ "imv-dir.desktop" ];
+      "image/avif" = [ "imv-dir.desktop" ];
+      "image/heic" = [ "imv-dir.desktop" ];
+      "image/*" = [ "imv-dir.desktop" ];
+    };
+  };
 
   programs.mpvpaper = {
     enable = true;

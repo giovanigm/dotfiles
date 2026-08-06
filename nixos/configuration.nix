@@ -8,6 +8,7 @@
     ./configurations/locale.nix
     ./configurations/qylock.nix
     ./configurations/desktop.nix
+    ./configurations/filesystems.nix
     ./configurations/nvidia.nix
     ./configurations/ddcutil.nix
     ./configurations/audio.nix

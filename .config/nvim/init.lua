@@ -75,6 +75,7 @@ else
   vim.opt.rtp:prepend(lazypath)
 
   require("vim-options")
+  require("filetypes")
   require("lazy").setup("plugins")
   require("autocmds")
 end

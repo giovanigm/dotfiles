@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 This is a **dotfiles repository** — not an application. It manages user configuration for a NixOS workstation with Hyprland, Neovim, Waybar, Ghostty, and other tools. Deployment works through two independent mechanisms:
-- **`make deploy`** — symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, and every directory under `.config/` into `~/.config/`, backing up existing files
+- **`make deploy`** — symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, every file under `.local/bin/` into `~/.local/bin/`, and every directory under `.config/` into `~/.config/`, backing up existing files
 - **`nixos-rebuild-switch`** — shell function (in `.zshrc`) that runs `sudo nixos-rebuild switch --flake /etc/nixos#nixos`
 
 The NixOS system directory (`nixos/`) is also symlinked from `/etc/nixos` via a systemd tmpfiles rule (set in `configurations/system.nix`).
@@ -14,7 +14,7 @@ The NixOS system directory (`nixos/`) is also symlinked from `/etc/nixos` via a 
 
 | Command | What it does | Where |
 |---------|-------------|-------|
-| `make deploy` | Symlink `.zshrc`, `.claude/statusline.sh`, and all `.config/*` dirs (backups existing) | Makefile |
+| `make deploy` | Symlink `.zshrc`, `.claude/statusline.sh`, `.local/bin/*`, and all `.config/*` dirs (backups existing) | Makefile |
 | `make setup-nixos` | One-time setup: symlink `/etc/nixos` → repo | Makefile |
 | `nixos-rebuild-switch` | Rebuild and switch NixOS system | `.zshrc` |
 | `nixos-rebuild-boot` | Rebuild NixOS and update boot entries (no live switch) | `.zshrc` |
@@ -43,6 +43,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 | `configurations/nvidia.nix` | NVIDIA RTX 3080: proprietary driver, open kernel module, modesetting, power mgmt |
 | `configurations/audio.nix` | PipeWire (ALSA, PulseAudio, JACK, WirePlumber) |
 | `configurations/docker.nix` | Docker daemon with weekly auto-prune |
+| `configurations/filesystems.nix` | NTFS driver (ntfs3 + ntfs-3g), udisks2, gvfs, polkit rules |
 | `configurations/fonts.nix` | Font packages (JetBrains Mono Nerd Font) |
 | `configurations/packages/apps.nix` | Global GUI apps, media/gaming, desktop environment, Zen Browser |
 | `configurations/packages/dev.nix` | Global editor + dev/DB tools, Android CLI |
@@ -62,10 +63,11 @@ There are no tests, no linting, no build step — this is purely configuration f
 
 ### Dotfiles (`make deploy`)
 
-The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, and iterates over `.config/*` to create symlinks in `~/.config/`. Each subdirectory is a standalone app config:
+The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, iterates over `.local/bin/*` to create per-file symlinks in `~/.local/bin/`, and iterates over `.config/*` to create symlinks in `~/.config/`. Each subdirectory is a standalone app config:
 
+- **`.local/bin/set-wallpaper`** — Unified wallpaper manager. Sets images via awww, videos via mpvpaper, or picks random images from a directory. `--next` cycles wallpapers, `--suspend`/`--resume` handle the screen-lock lifecycle (fixes mpvpaper freezing after lock/unlock).
 - **`.config/nvim/`** — Neovim with lazy.nvim. `init.lua` bootstraps lazy.nvim then loads `vim-options`, plugin specs, `autocmds`, and `mappings`. Plugins are split under `lua/plugins/` (one file per plugin/concern). Has a VSCode compatibility layer at the top of `init.lua` for Clojure/Calva workflows.
-- **`.config/hypr/`** — Hyprland compositor. `hyprland.lua` is the main config (Lua API). Requires `catppuccin-mocha.lua` for the color palette. Scripts in `scripts/`: `random-wallpaper.sh` (picks from wallpaper dir, sets with awww), `focus-or-launch.sh` (launch or focus+maximize an app), `toggle-rofi.sh`, `toggle-desktop.sh`.
+- **`.config/hypr/`** — Hyprland compositor. `hyprland.lua` is the main config (Lua API). Requires `catppuccin-mocha.lua` for the color palette. Scripts in `scripts/`: `focus-or-launch.sh` (launch or focus+maximize an app), `toggle-rofi.sh`, `toggle-desktop.sh`, `monitor-brightness.sh`, `reload-waybar.sh`.
 - **`.config/waybar/`** — Status bar. `config` is JSON defining modules (workspaces, CPU, temp, RAM, disk, network, pulseaudio, cava, clock, tray). `style.css` is Catppuccin-themed.
 - **`.config/ghostty/`** — Terminal emulator. `config.ghostty` is the main config; `themes/` has Catppuccin variants.
 - **`.config/wezterm/`** — Legacy terminal config (maximized, Github Dark theme, font-size 16).

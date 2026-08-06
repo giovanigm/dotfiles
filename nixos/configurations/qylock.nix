@@ -33,7 +33,18 @@
     (pkgs.writeShellScriptBin "qylock-lock-wrapped" ''
       export QT_PLUGIN_PATH="${pkgs.qt6.qtmultimedia}/lib/qt-6/plugins''${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
       export QT_MEDIA_BACKEND="ffmpeg"
-      exec qylock-lock "$@"
+
+      # mpvpaper's layer surface is destroyed on screen lock/unlock,
+      # leaving the video wallpaper frozen or dead. Suspend before
+      # locking and resume afterwards so the wallpaper is fresh.
+      SW="$HOME/.local/bin/set-wallpaper"
+      [ -x "$SW" ] && "$SW" --suspend || true
+
+      qylock-lock "$@"
+      status=$?
+
+      [ -x "$SW" ] && "$SW" --resume || true
+      exit $status
     '')
   ];
 }

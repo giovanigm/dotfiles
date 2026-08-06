@@ -9,9 +9,12 @@
 export FVM_CACHE_PATH="$HOME/.fvm"
 export PATH="$FVM_CACHE_PATH/default/bin:$PATH"
 export PATH="$HOME/.pub-cache/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 alias nixos-rebuild-switch="sudo nixos-rebuild switch --flake /etc/nixos#nixos"
 alias nixos-rebuild-boot="sudo nixos-rebuild boot --flake /etc/nixos#nixos"
+alias nixos-rebuild-test="sudo nixos-rebuild test --flake /etc/nixos#nixos"
+alias nixos-rebuild-build="sudo nixos-rebuild build --flake /etc/nixos#nixos"
 
 # ── Syntax-check all .nix files in the repo ─────────────────────────────────
 nixos-check() {

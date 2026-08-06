@@ -19,7 +19,7 @@ return {
     lazy = false,
     dependencies = { "mason-org/mason.nvim" },
     opts = {
-      ensure_installed = { "ts_ls", "gopls", "lua_ls", "jsonls" },
+      ensure_installed = { "ts_ls", "gopls", "lua_ls", "jsonls", "yamlls", "hyprls" },
     },
   },
   {
@@ -36,7 +36,7 @@ return {
     "neovim/nvim-lspconfig",
     lazy = false,
     config = function()
-      local servers = { "gopls", "ts_ls", "lua_ls", "jsonls" }
+      local servers = { "gopls", "ts_ls", "lua_ls", "jsonls", "yamlls", "hyprls" }
       vim.lsp.enable(servers)
 
       vim.lsp.config("gopls", {
@@ -67,7 +67,7 @@ return {
               version = "LuaJIT",
             },
             diagnostics = {
-              globals = { "vim" },
+              globals = { "vim", "hl" },
             },
             workspace = {
               library = vim.api.nvim_get_runtime_file("", true),
@@ -87,6 +87,19 @@ return {
             validate = { enable = true },
           },
         },
+      })
+
+      vim.lsp.config("yamlls", {
+        settings = {
+          yaml = {
+            schemas = require("schemastore").yaml.schemas(),
+            validate = true,
+          },
+        },
+      })
+
+      vim.lsp.config("hyprls", {
+        cmd = { "hyprls", "--stdio" },
       })
 
       local map = vim.keymap.set

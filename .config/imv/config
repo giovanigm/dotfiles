@@ -1,0 +1,7 @@
+[options]
+upscaling_method = linear
+
+[binds]
+<Esc> = quit
+q = quit
+f = fullscreen

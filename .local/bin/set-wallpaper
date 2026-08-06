@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# =============================================================================
+# set-wallpaper — unified wallpaper manager
+#
+# Usage:
+#   set-wallpaper <image-file>      Static wallpaper via awww
+#   set-wallpaper <video-file>      Animated wallpaper via mpvpaper
+#   set-wallpaper <directory>       Random image from directory via awww
+#   set-wallpaper --next            Cycle to a different random image
+#   set-wallpaper --suspend         Stop wallpaper before screen lock
+#   set-wallpaper --resume          Restore wallpaper after screen lock
+#
+# State is stored in ~/.cache/set-wallpaper/ so --resume and --next know
+# what to restore / what directory to pick from.
+#
+# The --suspend/--resume pair fixes the mpvpaper-after-lock bug: mpvpaper's
+# layer surface is destroyed on lock/unlock, so the video dies. We kill it
+# before locking and replay the last wallpaper state after unlocking.
+# =============================================================================
+set -euo pipefail
+
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/set-wallpaper"
+STATE_FILE="$CACHE_DIR/state"
+SUSPEND_FILE="$CACHE_DIR/suspended"
+
+# File extensions treated as video (everything else is treated as an image).
+VIDEO_EXTS="mp4 webm mkv mov m4v gif avi"
+
+usage() {
+  cat <<'EOF'
+Usage: set-wallpaper <image-file|video-file|directory>
+       set-wallpaper --next
+       set-wallpaper --suspend
+       set-wallpaper --resume
+
+  <file>       image → awww (static), video → mpvpaper (animated)
+  <directory>  pick a random image and set via awww
+  --next       cycle to a different random image from the last directory
+  --suspend    stop the current wallpaper before locking the screen
+  --resume     restore the wallpaper after unlocking
+EOF
+  exit 1
+}
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+is_video() {
+  local ext
+  ext="${1##*.}"
+  ext="$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')"
+  [[ " $VIDEO_EXTS " == *" $ext "* ]]
+}
+
+kill_mpvpaper() {
+  # Kill mpvpaper + any mpvpaper-holder children. SIGTERM first,
+  # escalate to SIGKILL if any survive after a short grace period.
+  pkill mpvpaper 2>/dev/null || true
+  local i
+  for i in $(seq 1 20); do
+    pgrep mpvpaper >/dev/null 2>&1 || break
+    sleep 0.1
+  done
+  pkill -9 mpvpaper 2>/dev/null || true
+}
+
+ensure_awww_daemon() {
+  pgrep -x awww-daemon >/dev/null 2>&1 && return 0
+  nohup awww-daemon >/dev/null 2>&1 &
+  local i
+  for i in $(seq 1 50); do
+    awww query >/dev/null 2>&1 && return 0
+    sleep 0.1
+  done
+  echo "set-wallpaper: awww-daemon failed to start" >&2
+  return 1
+}
+
+pick_random() {
+  # pick_random <dir> [excluded-basename] → absolute path of one image
+  local dir="$1" exclude="${2:-}" found=""
+  local filter="-iname *.jpg -o -iname *.jpeg -o -iname *.png -o -iname *.webp -o -iname *.bmp"
+  if [[ -n "$exclude" ]]; then
+    found="$(find "$dir" -type f \( $filter \) ! -name "$exclude" 2>/dev/null | shuf -n1)"
+  fi
+  [[ -n "$found" ]] || found="$(find "$dir" -type f \( $filter \) 2>/dev/null | shuf -n1)"
+  if [[ -z "$found" ]]; then
+    echo "set-wallpaper: no images found in $dir" >&2
+    return 1
+  fi
+  printf '%s\n' "$found"
+}
+
+write_state() {
+  # write_state <target> <applied-path>
+  mkdir -p "$CACHE_DIR"
+  printf 'TARGET=%s\nAPPLIED=%s\n' "$1" "$2" > "$STATE_FILE"
+}
+
+# ── Apply functions ──────────────────────────────────────────────────────────
+
+apply_image() {
+  local target="$1" path="$2"
+  kill_mpvpaper
+  ensure_awww_daemon || return 1
+  awww img "$path" \
+    --transition-type any \
+    --transition-fps 60 \
+    --transition-duration 1.5 \
+    --transition-bezier .43,1.19,1,.4
+  write_state "$target" "$path"
+}
+
+apply_video() {
+  local target="$1" path="$2"
+  kill_mpvpaper
+  # Detach: double-fork via subshell + nohup so mpvpaper outlives this script
+  # and survives the lock wrapper exiting after --resume.
+  (nohup mpvpaper -vs -o 'no-audio loop' '*' "$path" >/dev/null 2>&1 &)
+  write_state "$target" "$path"
+}
+
+# ── Subcommands ──────────────────────────────────────────────────────────────
+
+cmd_apply() {
+  local target="$1" picked
+  if [[ -d "$target" ]]; then
+    picked="$(pick_random "$target")" || exit 1
+    apply_image "$target" "$picked"
+  elif is_video "$target"; then
+    apply_video "$target" "$target"
+  else
+    # Treat as image — awww will reject it if it's not a valid image,
+    # which gives a clearer error than us guessing.
+    apply_image "$target" "$target"
+  fi
+}
+
+cmd_next() {
+  local target applied
+  if [[ ! -f "$STATE_FILE" ]]; then
+    echo "set-wallpaper: no previous wallpaper — run 'set-wallpaper <dir>' first" >&2
+    exit 1
+  fi
+  target="$(sed -n 's/^TARGET=//p' "$STATE_FILE")"
+  applied="$(sed -n 's/^APPLIED=//p' "$STATE_FILE")"
+  if [[ ! -d "$target" ]]; then
+    echo "set-wallpaper: last target is not a directory — nothing to cycle" >&2
+    exit 1
+  fi
+  apply_image "$target" "$(pick_random "$target" "$(basename "$applied")")"
+}
+
+cmd_suspend() {
+  mkdir -p "$CACHE_DIR"
+  touch "$SUSPEND_FILE"
+  kill_mpvpaper
+}
+
+cmd_resume() {
+  local target applied
+  [[ -f "$SUSPEND_FILE" ]] || return 0
+  rm -f "$SUSPEND_FILE"
+  [[ -f "$STATE_FILE" ]] || return 0
+  target="$(sed -n 's/^TARGET=//p' "$STATE_FILE")"
+  applied="$(sed -n 's/^APPLIED=//p' "$STATE_FILE")"
+  if is_video "$applied"; then
+    apply_video "$target" "$applied"
+  else
+    apply_image "$target" "$applied"
+  fi
+}
+
+# ── Entry point ──────────────────────────────────────────────────────────────
+
+case "${1:-}" in
+  --suspend) cmd_suspend ;;
+  --resume)  cmd_resume ;;
+  --next)    cmd_next ;;
+  -h|--help) usage ;;
+  "")
+    usage
+    ;;
+  *)
+    [[ -e "$1" ]] || { echo "set-wallpaper: not found: $1" >&2; exit 1; }
+    cmd_apply "$(realpath "$1")"
+    ;;
+esac

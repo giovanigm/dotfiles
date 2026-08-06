@@ -8,6 +8,7 @@ return {
       clj = { "cljfmt" },
       json = { "prettierd" },
       jsonc = { "prettierd" },
+      yaml = { "prettierd" },
       -- css = { "prettier" },
       -- html = { "prettier" },
     },

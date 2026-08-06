@@ -28,6 +28,8 @@
     WLR_NO_HARDWARE_CURSORS = "1";
     # Hint Electron apps to use Wayland
     NIXOS_OZONE_WL = "1";
+    # GTK4: force NVIDIA OpenGL backend (Vulkan default is buggy on NVIDIA)
+    GSK_RENDERER = "ngl";
   };
 
   # ── Wait for GPU before starting SDDM (prevents Wayland race) ─
