@@ -115,7 +115,13 @@ apply_video() {
   kill_mpvpaper
   # Detach: double-fork via subshell + nohup so mpvpaper outlives this script
   # and survives the lock wrapper exiting after --resume.
-  (nohup mpvpaper -vs -o 'no-audio loop' '*' "$path" >/dev/null 2>&1 &)
+  #
+  # NOTE: no -s/--auto-stop or -p/--auto-pause. mpvpaper detects "hidden"
+  # via frame callbacks, which is unreliable on Hyprland — playback stops
+  # and never resumes, leaving a frozen wallpaper. The lock-screen lifecycle
+  # is already handled by --suspend/--resume, so mpvpaper should always play.
+  # hwdec=auto-safe keeps 4K video off the CPU (NVDEC) when the codec allows.
+  (nohup mpvpaper -v -o 'no-audio loop hwdec=auto-safe' '*' "$path" >/dev/null 2>&1 &)
   write_state "$target" "$path"
 }
 

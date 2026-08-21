@@ -3,10 +3,11 @@
 #   nixos-rebuild-switch    (was: nixos-rebuild-switch)
 #   nixos-check             (was: make check)
 #   nixos-clean-broken-generations  (was: make clean-broken-generations)
+# setup-nixos has been merged into deploy.
 
-.PHONY: deploy setup-nixos
+.PHONY: deploy
 
-# Symlink .zshrc to ~/ and every dir under .config/ into ~/.config/
+# Symlink dotfiles into $HOME and set up /etc/nixos → repo
 deploy:
 	@mkdir -p $(HOME)/.config
 	@# Symlink .zshrc
@@ -59,11 +60,7 @@ deploy:
 		ln -sfn "$$dir" "$$link"; \
 		echo "$$target → $$link"; \
 	done
-
-# Symlink /etc/nixos → repo (one-time setup)
-# If /etc/nixos is a bind mount (impermanence), run `nixos-rebuild-switch` first,
-# then reboot — the tmpfiles rule will create the symlink.
-setup-nixos:
+	@# Setup /etc/nixos → repo symlink (one-time, idempotent)
 	@if [ -L /etc/nixos ]; then \
 		echo "/etc/nixos is already a symlink → $$(readlink /etc/nixos)"; \
 	elif mountpoint -q /etc/nixos 2>/dev/null; then \

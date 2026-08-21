@@ -11,6 +11,7 @@
     ./configurations/filesystems.nix
     ./configurations/nvidia.nix
     ./configurations/ddcutil.nix
+    ./configurations/fans.nix
     ./configurations/audio.nix
     ./configurations/docker.nix
     ./configurations/fonts.nix

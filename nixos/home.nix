@@ -50,9 +50,9 @@
         hash = "sha256-FpwMhzYmbjwvbpJd6xDRka6h2bvgsqdopqP5deQKXSA=";
       };
     });
-    pauseList = ''
-      firefox
-      steam
-    '';
+    # No pauseList: mpvpaper pauses whenever a listed process runs. The
+    # Steam client (and Firefox) stay open in the background, so the
+    # wallpaper was effectively always paused/frozen. If a game needs the
+    # GPU later, list its binary here instead of the launcher (e.g. cs2).
   };
 }

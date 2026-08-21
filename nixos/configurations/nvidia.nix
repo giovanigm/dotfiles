@@ -6,8 +6,12 @@
 
   hardware.graphics = {
     enable = true;
+    enable32Bit = true;              # Required for Steam (32-bit client + games)
     extraPackages = with pkgs; [
       nvidia-vaapi-driver      # VA-API hardware video acceleration
+    ];
+    extraPackages32 = with pkgs.pkgsi686Linux; [
+      nvidia-vaapi-driver      # 32-bit VA-API for 32-bit games
     ];
   };
 
