@@ -9,6 +9,13 @@
     jq
     efibootmgr
 
+    # ── Screenshots (grim + slurp + satty) ──────────────────
+    grim
+    slurp
+    satty
+    wl-clipboard
+    libnotify  # notify-send — screenshot notifications
+
     # ── System monitoring ───────────────────────────────────
     bottom
     ddcutil

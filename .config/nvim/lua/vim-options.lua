@@ -12,6 +12,7 @@ o.clipboard = "unnamedplus"
 o.cursorline = true
 o.cursorlineopt = "both"
 o.wrap = false
+o.virtualedit = "all"
 
 -- Indenting
 o.expandtab = true

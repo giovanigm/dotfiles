@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# =============================================================================
+# screenshot — grim + slurp + satty screenshot tool
+#
+# Usage:
+#   screenshot full              Whole desktop → satty → save
+#   screenshot region            Interactive region → satty → save
+#   screenshot monitor           Click a monitor → satty → save
+#   screenshot copy              Interactive region → clipboard (no annotation)
+#   screenshot copy-full         Whole desktop → clipboard (no annotation)
+#
+# In satty: Ctrl+S saves to the output file, Ctrl+C copies to the clipboard
+# (via wl-copy), Esc copies to the clipboard and exits. Esc in slurp cancels
+# the selection and aborts the script.
+#
+# Saved to ~/Pictures/Screenshots (override with $SCREENSHOT_DIR).
+# =============================================================================
+set -euo pipefail
+
+DIR="${SCREENSHOT_DIR:-$HOME/Pictures/Screenshots}"
+
+usage() {
+  cat <<'EOF'
+Usage: screenshot {full|region|monitor|copy|copy-full} [--help]
+
+  full       Whole desktop → satty annotation → save
+  region     Interactive region (slurp) → satty annotation → save
+  monitor    Click a monitor to capture → satty annotation → save
+  copy       Interactive region → clipboard (wl-copy, no annotation)
+  copy-full  Whole desktop → clipboard (wl-copy, no annotation)
+
+Files are saved to ~/Pictures/Screenshots/ (override with $SCREENSHOT_DIR).
+EOF
+  exit 1
+}
+
+notify() {
+  # best-effort; do not fail if notify-send is missing
+  command -v notify-send >/dev/null 2>&1 || return 0
+  notify-send -t 5000 "Screenshot" "$1"
+}
+
+new_name() {
+  printf 'Screenshot_%s\n' "$(date +%Y-%m-%d_%H%M%S)"
+}
+
+# annotate <name>: pipe the captured image (stdin) into satty.
+annotate() {
+  local name="$1"
+  satty -f - \
+    --output-filename "$DIR/$name.png" \
+    --copy-command "wl-copy --type image/png" \
+    --actions-on-escape "save-to-clipboard,exit" \
+    --disable-notifications
+}
+
+cmd_full() {
+  mkdir -p "$DIR"
+  grim - | annotate "$(new_name)"
+  notify "Screenshot complete"
+}
+
+cmd_region() {
+  local geom name
+  geom="$(slurp -d)" || { notify "Screenshot cancelled"; exit 1; }
+  mkdir -p "$DIR"
+  name="$(new_name)"
+  grim -g "$geom" - | annotate "$name"
+  notify "Screenshot complete"
+}
+
+cmd_monitor() {
+  local out name
+  out="$(slurp -o -r -f "%o")" || { notify "Screenshot cancelled"; exit 1; }
+  mkdir -p "$DIR"
+  name="$(new_name)"
+  grim -o "$out" - | annotate "$name"
+  notify "Screenshot complete"
+}
+
+cmd_copy() {
+  local geom
+  geom="$(slurp -d)" || { notify "Screenshot cancelled"; exit 1; }
+  grim -g "$geom" - | wl-copy --type image/png
+  notify "Region copied to clipboard"
+}
+
+cmd_copy_full() {
+  grim - | wl-copy --type image/png
+  notify "Desktop copied to clipboard"
+}
+
+# ── Entry point ──────────────────────────────────────────────────────────────
+
+case "${1:-}" in
+  full)      cmd_full ;;
+  region)    cmd_region ;;
+  monitor)   cmd_monitor ;;
+  copy)      cmd_copy ;;
+  copy-full) cmd_copy_full ;;
+  -h|--help) usage ;;
+  *)         usage ;;
+esac

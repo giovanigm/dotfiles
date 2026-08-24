@@ -298,6 +298,11 @@ end)
 -- Lock screen
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qylock-lock-wrapped pixel-night-city"))
 
+-- Screenshots: Print = full desktop, SHIFT+Print = region, CTRL+Print = region to clipboard
+hl.bind("Print", hl.dsp.exec_cmd("~/.local/bin/screenshot full"))
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("~/.local/bin/screenshot region"))
+hl.bind("CTRL + Print", hl.dsp.exec_cmd("~/.local/bin/screenshot copy"))
+
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
