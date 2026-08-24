@@ -23,9 +23,14 @@
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    distro-grub-themes = {
+      url = "github:AdisonCavani/distro-grub-themes";
+      inputs.nixpkgs.follows = "nixpkgs"; # their default is nixos-unstable — avoid a second nixpkgs
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-master, impermanence, home-manager, qylock, zen-browser }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-master, impermanence, home-manager, qylock, zen-browser, distro-grub-themes }@inputs: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };

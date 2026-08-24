@@ -1,36 +1,36 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
+let
+  grubTheme = inputs.distro-grub-themes.packages.${pkgs.system}.nixos-grub-theme;
+in
 {
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # Windows is on a separate ESP (nvme0n1p1) — make it visible to systemd-boot
-  fileSystems."/boot/efi-windows" = {
-    device = "/dev/disk/by-partuuid/5954f994-0d27-453d-983e-e4954f3535df";
-    fsType = "vfat";
-    options = [ "ro" "noauto" "noatime" ];
-  };
-
-  boot.loader.systemd-boot.extraInstallCommands = ''
-    ${pkgs.coreutils}/bin/mkdir -p /boot/EFI /tmp/win-esp
-    ${pkgs.util-linux}/bin/mount /dev/disk/by-partuuid/5954f994-0d27-453d-983e-e4954f3535df /tmp/win-esp
-    if [ -d /tmp/win-esp/EFI/Microsoft ]; then
-      ${pkgs.coreutils}/bin/cp -r /tmp/win-esp/EFI/Microsoft /boot/EFI/
-      echo "Copied Windows boot files → /boot/EFI/Microsoft"
-    fi
-    ${pkgs.util-linux}/bin/umount /tmp/win-esp
-    # Disable auto-detected entries so we control ordering via manual entries
-    ${pkgs.gnused}/bin/sed -i '1i auto-entries 0' /boot/loader/loader.conf
-    # Make Windows the default (focused) entry
-    ${pkgs.gnused}/bin/sed -i 's/^default .*/default windows.conf/' /boot/loader/loader.conf
-  '';
-
-  # Manual Windows entry with sort-key that comes before NixOS entries
-  boot.loader.systemd-boot.extraEntries = {
-    "windows.conf" = ''
-      title Windows 11
-      efi /EFI/Microsoft/Boot/bootmgfw.efi
-      sort-key a_windows
+  # ── GRUB (EFI) ─────────────────────────────────────────────
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    # EFI-only machine: `nodev` skips the BIOS install only; the EFI
+    # install still runs (grub-install targets the ESP mount point).
+    # Required: the `mirroredBoots` assertion needs device/devices set.
+    device = "nodev";
+    # Windows is chainloaded manually — os-prober would add duplicate
+    # or oddly-named entries from the separate Windows ESP.
+    useOSProber = false;
+    # Menu order (install-grub.pl): 0=NixOS (current gen),
+    # 1=Windows 11 (extraEntries), 2="NixOS - All configurations"
+    # submenu. Index is positional — recheck if extra entries change.
+    # (String defaults are emitted unquoted by install-grub.pl — broken.)
+    default = 0;
+    # distro-grub-themes: NixOS variant (github:AdisonCavani/distro-grub-themes)
+    theme = grubTheme;
+    splashImage = "${grubTheme}/splash_image.jpg";
+    gfxmodeEfi = "2560x1440"; # monitor native res (theme docs recommend fixed res over "auto")
+    extraEntries = ''
+      menuentry "Windows 11" {
+        search --fs-uuid --set=root FAB7-2B63
+        chainloader /EFI/Microsoft/Boot/bootmgfw.efi
+      }
     '';
   };
+  boot.loader.timeout = 5; # show the menu, then boot NixOS
+  boot.loader.efi.canTouchEfiVariables = true;
 }

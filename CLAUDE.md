@@ -36,7 +36,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 | `flake.nix` | Entry point. Declares inputs (nixpkgs, nixpkgs-master, impermanence, home-manager) and lists top-level modules |
 | `configuration.nix` | Thin orchestrator. Imports all modules from `configurations/` and bridges home-manager |
 | `configurations/nix.nix` | Nix daemon settings (experimental-features) |
-| `configurations/boot.nix` | Systemd-boot + Windows 11 dual-boot (separate ESP, manual entry) |
+| `configurations/boot.nix` | GRUB + Windows 11 dual-boot (manual chainload entry on separate ESP) |
 | `configurations/networking.nix` | Hostname + NetworkManager |
 | `configurations/locale.nix` | Timezone, locale/i18n, keyboard layout, Fcitx5 input method |
 | `configurations/desktop.nix` | SDDM + Hyprland (UWSM), xdg-portal, env vars, GPU wait |
@@ -59,7 +59,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 
 **Flake inputs**: `nixpkgs` (nixos-26.05), `nixpkgs-master` (unfree), `impermanence`, `home-manager` (follows nixpkgs).
 
-**Key system details**: Dual-boot with Windows 11 (separate ESP, manual systemd-boot entry with sort-key), NVIDIA RTX 3080 with proprietary driver + open kernel module + modesetting, SDDM + Hyprland (UWSM launcher).
+**Key system details**: Dual-boot with Windows 11 (separate ESP, manual GRUB chainload entry, older generations in a submenu), NVIDIA RTX 3080 with proprietary driver + open kernel module + modesetting, SDDM + Hyprland (UWSM launcher).
 
 ### Dotfiles (`make deploy`)
 

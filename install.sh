@@ -300,6 +300,7 @@ identify_candidates() {
     # Find Windows ESP (vfat with Microsoft boot files, not already /boot)
     WINDOWS_DEV=""
     WINDOWS_PARTUUID=""
+    WINDOWS_UUID=""
     while IFS= read -r line; do
         local dev
         dev="/dev/$(echo "$line" | awk '{print $1}')"
@@ -311,6 +312,8 @@ identify_candidates() {
                 if $DRY_RUN || (sudo mount -o ro "$dev" /tmp 2>/dev/null && [ -d /tmp/EFI/Microsoft ]); then
                     WINDOWS_DEV="$dev"
                     WINDOWS_PARTUUID="$puuid"
+                    WINDOWS_UUID=$(lsblk -no UUID "$dev" 2>/dev/null || true)
+                    WINDOWS_UUID="${WINDOWS_UUID^^}" # vfat UUIDs are uppercase in boot.nix
                 fi
                 sudo umount /tmp 2>/dev/null || true
                 if [ -n "$WINDOWS_DEV" ]; then
@@ -425,19 +428,19 @@ update_hardware_config_uuids() {
         fi
     fi
 
-    # Patch Windows PARTUUID in configuration.nix if Windows found
-    if [ -n "$WINDOWS_PARTUUID" ]; then
-        local cfg="${NIXOS_DIR}/configuration.nix"
-        local current_win_puuid
-        current_win_puuid=$(grep -oP 'by-partuuid/\K[a-f0-9-]+' "$cfg" | head -1 || true)
-        if [ -n "$current_win_puuid" ] && [ "$current_win_puuid" != "$WINDOWS_PARTUUID" ]; then
-            info "Windows PARTUUID: $current_win_puuid → $WINDOWS_PARTUUID"
-            run_sudo sed -i "s|${current_win_puuid}|${WINDOWS_PARTUUID}|g" "$cfg"
+    # Patch Windows ESP fs-uuid in boot.nix (GRUB chainload entry) if Windows found
+    if [ -n "$WINDOWS_UUID" ]; then
+        local cfg="${NIXOS_DIR}/configurations/boot.nix"
+        local current_win_uuid
+        current_win_uuid=$(grep -oPe '--fs-uuid\s+\K[A-F0-9]{4}-[A-F0-9]{4}' "$cfg" | head -1 || true)
+        if [ -n "$current_win_uuid" ] && [ "$current_win_uuid" != "$WINDOWS_UUID" ]; then
+            info "Windows ESP UUID: $current_win_uuid → $WINDOWS_UUID"
+            run_sudo sed -i "s|${current_win_uuid}|${WINDOWS_UUID}|g" "$cfg"
             changed=true
-        elif [ -z "$current_win_puuid" ]; then
-            warn "Could not parse Windows PARTUUID from configuration.nix."
+        elif [ -z "$current_win_uuid" ]; then
+            warn "Could not parse Windows fs-uuid from boot.nix."
         else
-            ok "Windows PARTUUID matches hardware."
+            ok "Windows ESP UUID matches hardware."
         fi
     fi
 
@@ -513,44 +516,11 @@ check_nvme() {
     fi
 }
 
-handle_windows_esp() {
-    local cfg="${NIXOS_DIR}/configuration.nix"
-
-    # Check if Windows ESP references are already wrapped
-    if grep -q 'WINDOWS_ESP_FOUND' "$cfg" 2>/dev/null; then
-        ok "Windows ESP already guarded (conditional)"
-        return 0
-    fi
-
-    if [ -n "$WINDOWS_DEV" ]; then
-        ok "Windows ESP found — dual-boot will be configured"
-        return 0
-    fi
-
-    # No Windows ESP found, and config not yet guarded
-    warn "Windows ESP not found. The configuration references it for dual-boot."
-
-    if confirm "Wrap Windows ESP references in a device-existence check?
-       (Safe — if the ESP appears later, it will be picked up automatically)"; then
-        info "Wrapping Windows ESP references in configuration.nix..."
-        # We'll add a guard comment marker so we detect this on re-runs
-        run_sudo sed -i \
-            's|fileSystems."/boot/efi-windows" = {|# WINDOWS_ESP_FOUND: actual device check below\n  fileSystems."/boot/efi-windows" = if builtins.pathExists (/. + "/dev/disk/by-partuuid/5954f994-0d27-453d-983e-e4954f3535df") then {|' \
-            "$cfg"
-        warn "Manual review of configuration.nix recommended.
-         The sed-based wrapping is a best-effort guard."
-    else
-        warn "Windows ESP references left unchanged. The rebuild may fail.
-         Edit configuration.nix if needed."
-    fi
-}
-
 run_hardware_validation() {
     step "Phase 3 — Hardware validation"
     check_gpu
     check_cpu
     check_nvme
-    handle_windows_esp
 }
 
 # ═══════════════════════════════════════════════════════════

@@ -44,7 +44,7 @@
 
   # ── Optional: fixed mount for the Windows drive ───────────
   # Find the UUID first:  lsblk -f   (or: blkid /dev/nvme0n1*)
-  # Typical layout: nvme0n1p1 = Windows ESP (already mounted ro in boot.nix),
+  # Typical layout: nvme0n1p1 = Windows ESP (chainloaded by GRUB from boot.nix),
   #                 nvme0n1p3 = Windows C: (NTFS), p4 = recovery
   # Uncomment once the UUID is known:
   # fileSystems."/mnt/windows" = {
