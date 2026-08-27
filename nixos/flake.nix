@@ -14,9 +14,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    qylock = {
-      url = "github:Darkkal44/qylock";
-      inputs.nixpkgs.follows = "nixpkgs-master";  # quickshell not in stable yet
+    # DankMaterialShell — all-in-one desktop shell (bar, launcher, lock, idle)
+    dms = {
+      url = "github:AvengeMedia/DankMaterialShell";
+      inputs.nixpkgs.follows = "nixpkgs"; # its modules build dms-shell with the caller's pkgs
     };
 
     zen-browser = {
@@ -30,14 +31,13 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-master, impermanence, home-manager, qylock, zen-browser, distro-grub-themes }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-master, impermanence, home-manager, dms, zen-browser, distro-grub-themes }@inputs: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [
         impermanence.nixosModules.impermanence
         home-manager.nixosModules.home-manager
-        qylock.nixosModules.default
         ./configuration.nix
         ./hardware-configuration.nix
         ./persistence.nix

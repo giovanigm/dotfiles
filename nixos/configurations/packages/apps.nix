@@ -33,9 +33,9 @@
     pavucontrol
 
     # ── Desktop environment ─────────────────────────────────
+    # quickshell, launcher (spotlight) and notifications are provided
+    # by DankMaterialShell (home-manager module in home.nix)
     awww
-    quickshell
-    hyprlock
     networkmanagerapplet
     networkmanager_dmenu
     hyprpolkitagent
@@ -45,11 +45,5 @@
 
     # ── Image viewer ────────────────────────────────────────
     imv
-
-    # ── Launcher ────────────────────────────────────────────
-    rofi
-
-    # ── Notification daemon (prevents Electron apps from freezing) ──
-    mako
   ];
 }

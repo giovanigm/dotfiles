@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   imports = [
@@ -6,7 +6,6 @@
     ./configurations/boot.nix
     ./configurations/networking.nix
     ./configurations/locale.nix
-    ./configurations/qylock.nix
     ./configurations/desktop.nix
     ./configurations/filesystems.nix
     ./configurations/nvidia.nix
@@ -31,6 +30,7 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
+    extraSpecialArgs = { inherit inputs; }; # home.nix needs inputs.dms
     users.giovani = import ./home.nix;
   };
 

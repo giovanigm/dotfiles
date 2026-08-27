@@ -26,24 +26,6 @@
     };
   };
 
-  # ── Quickshell status bar (bound to the UWSM graphical session) ─
-  systemd.user.services.quickshell = {
-    description = "Quickshell status bar";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
-    partOf = [ "graphical-session.target" ];
-    unitConfig = {
-      ConditionEnvironment = "WAYLAND_DISPLAY";
-    };
-    serviceConfig = {
-      ExecStart = "${pkgs.quickshell}/bin/quickshell";
-      Slice = "app-graphical.slice";
-      TimeoutStopSec = 5;
-      Restart = "on-failure";
-      RestartSec = 2;
-    };
-  };
-
   # ── Sushi video preview: fix OpenGL init on NVIDIA + Wayland ─
   # Sushi runs as a D-Bus service, so shell env vars don't reach it.
   systemd.user.extraConfig = ''
