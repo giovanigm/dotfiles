@@ -49,9 +49,9 @@ local music = "spotify"
 
 hl.on("hyprland.start", function()
 	hl.exec_cmd(terminal)
-	-- nm-applet disabled — network info is in Waybar
+	-- nm-applet disabled — network info is in the Quickshell bar
 	-- hl.exec_cmd("nm-applet --indicator")
-	hl.exec_cmd("waybar")
+	-- Quickshell bar is started by the quickshell.service (UWSM user service)
 	-- awww-daemon is started on demand by set-wallpaper
 	hl.exec_cmd("~/.local/bin/set-wallpaper ~/Videos/Wallpapers/night-city-pixel-moewalls-com.mp4")
 end)
@@ -281,7 +281,7 @@ hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/toggle-rofi.s
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit")) -- dwindle only
 hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("~/.local/bin/set-wallpaper --next"))
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("~/.config/hypr/scripts/reload-waybar.sh"))
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("~/.config/hypr/scripts/reload-quickshell.sh"))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd(music))
 

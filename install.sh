@@ -939,7 +939,7 @@ validate_setup() {
         "${HOME}/.zshrc"
         "${HOME}/.config/hypr"
         "${HOME}/.config/nvim"
-        "${HOME}/.config/waybar"
+        "${HOME}/.config/quickshell"
     )
     for check in "${checks[@]}"; do
         if [ -L "$check" ]; then

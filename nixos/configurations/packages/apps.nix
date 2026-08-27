@@ -34,8 +34,7 @@
 
     # ── Desktop environment ─────────────────────────────────
     awww
-    cava
-    waybar
+    quickshell
     hyprlock
     networkmanagerapplet
     networkmanager_dmenu
