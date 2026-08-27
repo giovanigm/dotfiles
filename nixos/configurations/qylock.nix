@@ -3,7 +3,7 @@
 {
   programs.qylock = {
     enable = true;
-    theme = "enfield";
+    theme = "sword";
     sddm.enable = true;         # Install & activate SDDM theme
     quickshell.enable = true;   # Add qylock-lock to PATH
   };

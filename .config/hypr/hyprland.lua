@@ -300,7 +300,7 @@ hl.bind("SUPER + SHIFT + Tab", function()
 end)
 
 -- Lock screen (qylock) — wrapper suspends mpvpaper around the lock
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qylock-lock-wrapped enfield"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qylock-lock-wrapped sword"))
 
 -- Screenshots: Print = full desktop, SHIFT+Print = region, CTRL+Print = region to clipboard
 hl.bind("Print", hl.dsp.exec_cmd("~/.local/bin/screenshot full"))
