@@ -6,6 +6,7 @@
     ./configurations/boot.nix
     ./configurations/networking.nix
     ./configurations/locale.nix
+    ./configurations/qylock.nix
     ./configurations/desktop.nix
     ./configurations/filesystems.nix
     ./configurations/nvidia.nix

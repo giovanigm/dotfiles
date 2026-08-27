@@ -7,11 +7,12 @@
 #   set-wallpaper <video-file>      Animated wallpaper via mpvpaper
 #   set-wallpaper <directory>       Random image from directory via awww
 #   set-wallpaper --next            Cycle to a different random image
+#   set-wallpaper --last            Reapply the last applied wallpaper
 #   set-wallpaper --suspend         Stop wallpaper before screen lock
 #   set-wallpaper --resume          Restore wallpaper after screen lock
 #
-# State is stored in ~/.cache/set-wallpaper/ so --resume and --next know
-# what to restore / what directory to pick from.
+# State is stored in ~/.cache/set-wallpaper/ so --last, --resume and --next
+# know what to restore / what directory to pick from.
 #
 # The --suspend/--resume pair fixes the mpvpaper-after-lock bug: mpvpaper's
 # layer surface is destroyed on lock/unlock, so the video dies. We kill it
@@ -30,12 +31,14 @@ usage() {
   cat <<'EOF'
 Usage: set-wallpaper <image-file|video-file|directory>
        set-wallpaper --next
+       set-wallpaper --last
        set-wallpaper --suspend
        set-wallpaper --resume
 
   <file>       image → awww (static), video → mpvpaper (animated)
   <directory>  pick a random image and set via awww
   --next       cycle to a different random image from the last directory
+  --last       reapply the last applied wallpaper
   --suspend    stop the current wallpaper before locking the screen
   --resume     restore the wallpaper after unlocking
 EOF
@@ -162,11 +165,9 @@ cmd_suspend() {
   kill_mpvpaper
 }
 
-cmd_resume() {
+replay_state() {
+  # replay_state → re-apply the wallpaper recorded in the state file
   local target applied
-  [[ -f "$SUSPEND_FILE" ]] || return 0
-  rm -f "$SUSPEND_FILE"
-  [[ -f "$STATE_FILE" ]] || return 0
   target="$(sed -n 's/^TARGET=//p' "$STATE_FILE")"
   applied="$(sed -n 's/^APPLIED=//p' "$STATE_FILE")"
   if is_video "$applied"; then
@@ -176,12 +177,28 @@ cmd_resume() {
   fi
 }
 
+cmd_last() {
+  [[ -f "$STATE_FILE" ]] || {
+    echo "set-wallpaper: no previous wallpaper — run 'set-wallpaper <file|dir>' first" >&2
+    exit 1
+  }
+  replay_state
+}
+
+cmd_resume() {
+  [[ -f "$SUSPEND_FILE" ]] || return 0
+  rm -f "$SUSPEND_FILE"
+  [[ -f "$STATE_FILE" ]] || return 0
+  replay_state
+}
+
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 case "${1:-}" in
   --suspend) cmd_suspend ;;
   --resume)  cmd_resume ;;
   --next)    cmd_next ;;
+  --last)    cmd_last ;;
   -h|--help) usage ;;
   "")
     usage

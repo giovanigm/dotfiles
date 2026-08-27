@@ -53,7 +53,9 @@ hl.on("hyprland.start", function()
 	-- DMS shell (bar, launcher, notifications, lock, idle) is started by
 	-- the dms.service (home-manager user service via UWSM)
 	-- awww-daemon is started on demand by set-wallpaper
-	hl.exec_cmd("~/.local/bin/set-wallpaper ~/Videos/Wallpapers/night-city-pixel-moewalls-com.mp4")
+	-- Reapply the last applied wallpaper (state in ~/.cache/set-wallpaper);
+	-- fall back to the default video on first boot when no state exists yet.
+	hl.exec_cmd("~/.local/bin/set-wallpaper --last || ~/.local/bin/set-wallpaper ~/Videos/Wallpapers/night-city-pixel-moewalls-com.mp4")
 end)
 
 -------------------------------
@@ -297,8 +299,8 @@ hl.bind("SUPER + SHIFT + Tab", function()
 	hl.dispatch(hl.dsp.window.fullscreen({ mode = 1 }))
 end)
 
--- Lock screen (DMS) — suspends mpvpaper around the lock, see dms-lock.sh
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("~/.config/hypr/scripts/dms-lock.sh"))
+-- Lock screen (qylock) — wrapper suspends mpvpaper around the lock
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qylock-lock-wrapped enfield"))
 
 -- Screenshots: Print = full desktop, SHIFT+Print = region, CTRL+Print = region to clipboard
 hl.bind("Print", hl.dsp.exec_cmd("~/.local/bin/screenshot full"))

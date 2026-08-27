@@ -3,16 +3,8 @@
 {
   services.xserver.enable = true;
 
-  # ── Login: greetd + DMS greeter (replaces SDDM) ──────────
-  # DankGreeter: a DMS-look login screen. The nixpkgs module wires
-  # greetd itself (dms-greeter user, cache dir, PAM, fonts) and
-  # syncs the DMS theme/settings/wallpaper from configHome.
-  services.displayManager.sddm.enable = false;
-  services.displayManager.dms-greeter = {
-    enable = true;
-    compositor.name = "hyprland"; # niri | hyprland | sway — hyprland is proven on this NVIDIA box
-    configHome = "/home/giovani"; # copy DMS settings/theme/wallpaper into the greeter
-  };
+  # ── Login: SDDM with the qylock theme (see configurations/qylock.nix) ──
+  services.displayManager.sddm.enable = true;
   services.displayManager.defaultSession = "hyprland-uwsm"; # .desktop basename of the UWSM-wrapped session
 
   # ── Hyprland ──────────────────────────────────────────────
@@ -110,25 +102,15 @@
     GSK_RENDERER = "ngl";
   };
 
-  # ── Wait for GPU before starting greetd (prevents Wayland race) ─
-  # ExecStartPre is a list, so this merges with the dms-greeter
-  # module's greetd preStart (which syncs DMS config into the cache).
-  systemd.services.greetd.serviceConfig = {
-    ExecStartPre = [
-      "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 50); do [ -e /dev/dri/renderD128 ] && exit 0; sleep 0.1; done'"
-    ];
-    # NVIDIA env vars for the pre-login greeter compositor (Hyprland)
-    Environment = [
-      "GBM_BACKEND=nvidia-drm"
-      "__GLX_VENDOR_LIBRARY_NAME=nvidia"
-      "LIBVA_DRIVER_NAME=nvidia"
-      "WLR_NO_HARDWARE_CURSORS=1"
-      "GSK_RENDERER=ngl"
-      # Same cursor as the user session (home.nix pointerCursor: Breeze Dark 24)
-      "XCURSOR_THEME=breeze_cursors"
-      "XCURSOR_SIZE=24"
-      "XCURSOR_PATH=/run/current-system/sw/share/icons"
-    ];
+  # ── Wait for GPU before starting SDDM (prevents Wayland race) ─
+  systemd.services.display-manager = {
+    after = [ "dev-dri-renderD128.device" ];
+    preStart = ''
+      for i in $(seq 1 50); do
+        [ -e /dev/dri/renderD128 ] && break
+        sleep 0.1
+      done
+    '';
   };
 
   # Cursor theme package available system-wide for the pre-login greeter

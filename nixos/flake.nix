@@ -20,6 +20,13 @@
       inputs.nixpkgs.follows = "nixpkgs"; # its modules build dms-shell with the caller's pkgs
     };
 
+    # qylock lock screen (Quickshell-based). Pinned to the rev that worked
+    # before the DMS migration; its nixpkgs follows nixpkgs-master (quickshell).
+    qylock = {
+      url = "github:Darkkal44/qylock/c45eed24c0f9a3148a7d13081b28acc4d7874853";
+      inputs.nixpkgs.follows = "nixpkgs-master";
+    };
+
     zen-browser = {
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -31,13 +38,14 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-master, impermanence, home-manager, dms, zen-browser, distro-grub-themes }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-master, impermanence, home-manager, dms, qylock, zen-browser, distro-grub-themes }@inputs: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [
         impermanence.nixosModules.impermanence
         home-manager.nixosModules.home-manager
+        qylock.nixosModules.default
         ./configuration.nix
         ./hardware-configuration.nix
         ./persistence.nix
