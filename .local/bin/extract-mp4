@@ -1,0 +1,69 @@
+#!/usr/bin/env nix-shell
+#! nix-shell -i bash -p python3 python3Packages.cryptography
+# =============================================================================
+# Usage:
+#   extract-mp4 <file>
+#
+# The files are AES-256-GCM encrypted MP4s. The plaintext payload starts
+# after a short header: a "Root\0" marker, the null-terminated internal
+# filename, 13 header bytes, a 12-byte IV and 4 bytes of padding before the
+# ciphertext; the last 16 bytes of the file are the GCM auth tag.
+#
+# The output is written next to the input as <name>.mp4.
+#
+# Dependencies (via nix-shell): python3 + cryptography. First run downloads
+# them from the binary cache.
+# =============================================================================
+set -euo pipefail
+
+usage() {
+    echo "usage: extract-mp4 <file>" >&2
+    exit 1
+}
+
+[[ $# -eq 1 ]] || usage
+
+python3 - "$1" <<'PY'
+import os
+import sys
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+KEY = bytes.fromhex("d27e154628ae2ba6ab4b9775165ff737")
+
+def extract_mlw(input_path):
+    if not os.path.exists(input_path):
+        print(f"file not found: {input_path}", file=sys.stderr)
+        return 1
+    with open(input_path, "rb") as f:
+        data = f.read()
+
+    root_idx = data.find(b"Root\x00")
+    if root_idx == -1:
+        print("root marker not found", file=sys.stderr)
+        return 1
+    filename_start = root_idx + 5
+    null_idx = data.find(b"\x00", filename_start)
+    if null_idx == -1:
+        print("end of filename not found", file=sys.stderr)
+        return 1
+    offset = null_idx + 13
+    iv = data[offset:offset+12]
+    ct = data[offset+16:-16]
+    tag = data[-16:]
+
+    try:
+        decryptor = Cipher(algorithms.AES(KEY), modes.GCM(iv)).decryptor()
+        dec = decryptor.update(ct) + decryptor.finalize_with_tag(tag)
+    except Exception as e:
+        print(f"failed: {e}", file=sys.stderr)
+        return 1
+
+    output_path = os.path.splitext(input_path)[0] + ".mp4"
+    with open(output_path, "wb") as f:
+        f.write(dec)
+    print(f"video extracted to: {output_path}")
+    return 0
+
+sys.exit(extract_mlw(sys.argv[1]))
+PY
