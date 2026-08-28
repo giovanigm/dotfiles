@@ -299,8 +299,8 @@ hl.bind("SUPER + SHIFT + Tab", function()
 	hl.dispatch(hl.dsp.window.fullscreen({ mode = 1 }))
 end)
 
--- Lock screen (qylock) — wrapper suspends mpvpaper around the lock
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("qylock-lock-wrapped sword"))
+-- Lock screen (DMS) — suspends mpvpaper around the lock, see dms-lock.sh
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("~/.config/hypr/scripts/dms-lock.sh"))
 
 -- Screenshots: Print = full desktop, SHIFT+Print = region, CTRL+Print = region to clipboard
 hl.bind("Print", hl.dsp.exec_cmd("~/.local/bin/screenshot full"))

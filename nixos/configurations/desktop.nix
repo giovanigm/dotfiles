@@ -3,8 +3,18 @@
 {
   services.xserver.enable = true;
 
-  # ── Login: SDDM with the qylock theme (see configurations/qylock.nix) ──
-  services.displayManager.sddm.enable = true;
+  # ── Login: greetd + DMS greeter (replaces SDDM, qylock removed) ──
+  # DankGreeter: DMS-look login screen. The nixpkgs module wires greetd
+  # itself (dms-greeter user, cache dir, PAM, fonts) and syncs the DMS
+  # theme/settings/wallpaper from configHome. qylock is fully removed —
+  # DMS owns the lock screen (dms-lock.sh bind in hyprland.lua).
+  services.displayManager.sddm.enable = false;
+  services.displayManager.dms-greeter = {
+    enable = true;
+    compositor.name = "hyprland"; # niri | hyprland | sway — hyprland is proven on this NVIDIA box
+    configHome = "/home/giovani"; # copy DMS settings/theme/wallpaper into the greeter
+    logs.save = true;             # TESTING: /tmp/dms-greeter.log — remove after boot-test passes
+  };
   services.displayManager.defaultSession = "hyprland-uwsm"; # .desktop basename of the UWSM-wrapped session
 
   # ── Hyprland ──────────────────────────────────────────────
@@ -102,21 +112,58 @@
     AQ_DRM_DEVICES = "/dev/dri/nvidia-card";
     # If cursor becomes invisible
     WLR_NO_HARDWARE_CURSORS = "1";
+    # Cursor theme (Breeze Dark, same as home.nix pointerCursor) — for the
+    # user session AND the pre-login greeter. greetd 0.10 execs the greeter
+    # with ONLY the PAM envlist (pam_env → /etc/pam/environment), it does
+    # NOT propagate the greetd service's Environment= lines. So this block
+    # is the only channel that reaches the greeter's Hyprland.
+    # HYPRCURSOR_* mirrors DMS's auto-generated cursor.lua (hyprcursor
+    # falls back to the xcursor theme when no hyprcursor theme exists).
+    XCURSOR_THEME = "breeze_cursors";
+    XCURSOR_SIZE = "24";
+    HYPRCURSOR_THEME = "breeze_cursors";
+    HYPRCURSOR_SIZE = "24";
     # Hint Electron apps to use Wayland
     NIXOS_OZONE_WL = "1";
     # GTK4: force NVIDIA OpenGL backend (Vulkan default is buggy on NVIDIA)
     GSK_RENDERER = "ngl";
   };
 
-  # ── Wait for GPU before starting SDDM (prevents Wayland race) ─
-  systemd.services.display-manager = {
+  # ── Wait for GPU before starting greetd (prevents Wayland race) ─
+  # NOTE on env: greetd 0.10 execs the greeter with ONLY the PAM envlist
+  # (pam_env → /etc/pam/environment, generated from
+  # environment.sessionVariables above) — it does NOT propagate this
+  # service's Environment= lines. The greeter already receives the NVIDIA
+  # vars through that channel; the list below is redundant and kept only
+  # for reference.
+  systemd.services.greetd = {
     after = [ "dev-dri-renderD128.device" ];
-    preStart = ''
-      for i in $(seq 1 50); do
-        [ -e /dev/dri/renderD128 ] && break
-        sleep 0.1
-      done
-    '';
+    serviceConfig = {
+      # ExecStartPre is a list, so this merges with the dms-greeter
+      # module's preStart (its own ExecStartPre job script).
+      # Do NOT use preStart here — a second string definition conflicts.
+      ExecStartPre = [
+        "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 50); do [ -e /dev/dri/renderD128 ] && exit 0; sleep 0.1; done'"
+      ];
+      # NVIDIA env vars for the pre-login greeter compositor (Hyprland).
+      # AQ_DRM_DEVICES pins the greeter's Hyprland to the NVIDIA card via
+      # the stable udev symlink (nvidia.nix) — the AMD iGPU is boot VGA and
+      # would otherwise become primary DRM. THIS is the fix missing in
+      # 89a857b (AQ_DRM_DEVICES postdates it, added in e2ea713).
+      Environment = [
+        "GBM_BACKEND=nvidia-drm"
+        "__GLX_VENDOR_LIBRARY_NAME=nvidia"
+        "LIBVA_DRIVER_NAME=nvidia"
+        "AQ_DRM_DEVICES=/dev/dri/nvidia-card"
+        "WLR_NO_HARDWARE_CURSORS=1"
+        "GSK_RENDERER=ngl"
+        # Video wallpaper in the greeter: pkgs.quickshell has no qtmultimedia
+        # buildInputs; qt wrappers use --prefix so these survive the qs
+        # wrapper and let the greeter decode .mp4 wallpapers.
+        "NIXPKGS_QT6_QML_IMPORT_PATH=${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtQmlPrefix}"
+        "QT_PLUGIN_PATH=${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtPluginPrefix}"
+      ];
+    };
   };
 
   # Cursor theme package available system-wide for the pre-login greeter
