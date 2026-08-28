@@ -94,6 +94,12 @@
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     LIBVA_DRIVER_NAME = "nvidia";
+    # Hyprland (aquamarine): NVIDIA card only. The AMD iGPU is the boot VGA,
+    # so it becomes primary DRM — compositing lands on the iGPU and frames
+    # are copied to NVIDIA (multigpu/linear), capping the desktop at ~60fps
+    # even though the mode is 144Hz. The name is a stable udev symlink
+    # (see nvidia.nix) — AQ_DRM_DEVICES splits on ':' so by-path won't work.
+    AQ_DRM_DEVICES = "/dev/dri/nvidia-card";
     # If cursor becomes invisible
     WLR_NO_HARDWARE_CURSORS = "1";
     # Hint Electron apps to use Wayland

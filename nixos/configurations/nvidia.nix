@@ -24,4 +24,12 @@
 
   # Preserve video memory across suspend/resume
   boot.kernelParams = [ "nvidia.NVreg_PreserveVideoMemoryAllocations=1" ];
+
+  # Stable /dev/dri/nvidia-card symlink. Card numbering (card0/card1) races
+  # between the NVIDIA and AMD GPUs at boot; aquamarine's AQ_DRM_DEVICES
+  # (desktop.nix) pins Hyprland to the NVIDIA card via this name. udev keeps
+  # the symlink correct regardless of which number the card gets.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="drm", KERNEL=="card*", KERNELS=="0000:01:00.0", SYMLINK+="dri/nvidia-card"
+  '';
 }
