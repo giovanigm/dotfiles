@@ -31,6 +31,7 @@
     qbittorrent
     qalculate-gtk
     pavucontrol
+    gparted
 
     # ── Desktop environment ─────────────────────────────────
     # quickshell, launcher (spotlight) and notifications are provided
