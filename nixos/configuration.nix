@@ -15,6 +15,7 @@
     ./configurations/docker.nix
     ./configurations/fonts.nix
     ./configurations/packages/apps.nix
+    ./configurations/packages/emulators.nix
     ./configurations/packages/dev.nix
     ./configurations/packages/sdks.nix
     ./configurations/packages/cli.nix

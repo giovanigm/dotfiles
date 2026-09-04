@@ -42,6 +42,16 @@
     });
   '';
 
+  # ── Emuladores partition (fixed mount for emulators) ────────
+  # Owned by giovani so emulator data dirs are writable from Linux.
+  # "nofail" so a dirty volume (Windows Fast Startup) doesn't block boot;
+  # automount keeps boot fast — the partition mounts on first access.
+  fileSystems."/mnt/emuladores" = {
+    device = "/dev/disk/by-uuid/01DC57D0CD566E80";
+    fsType = "ntfs3";
+    options = [ "rw" "noatime" "uid=1000" "gid=100" "nofail" "x-systemd.automount" "x-systemd.device-timeout=10" ];
+  };
+
   # ── Optional: fixed mount for the Windows drive ───────────
   # Find the UUID first:  lsblk -f   (or: blkid /dev/nvme0n1*)
   # Typical layout: nvme0n1p1 = Windows ESP (chainloaded by GRUB from boot.nix),

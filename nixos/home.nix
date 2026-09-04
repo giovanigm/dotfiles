@@ -75,6 +75,20 @@
     };
   };
 
+  # ── Emulator data dirs → NTFS "Emuladores" partition ───────
+  # mkOutOfStoreSymlink: symlink to an absolute out-of-store path at
+  # activation time (plain source paths would be copied into the store,
+  # which pure evaluation forbids for /mnt/...).
+  # Caveat: fails if a real dir already exists at the target
+  # (e.g. the emulator was launched before this rebuild) — remove it first.
+  home.file = {
+    ".local/share/dolphin-emu".source = config.lib.file.mkOutOfStoreSymlink "/mnt/emuladores/Wii/Dolphin/User";
+    ".config/rpcs3".source = config.lib.file.mkOutOfStoreSymlink "/mnt/emuladores/PS3/RPCS3";
+    ".local/share/eden".source = config.lib.file.mkOutOfStoreSymlink "/mnt/emuladores/Switch/Eden";
+    # Cemu is already installed (apps.nix) — uncomment to also share its MLC:
+    # ".local/share/Cemu".source = config.lib.file.mkOutOfStoreSymlink "/mnt/emuladores/WiiU/Cemu";
+  };
+
   programs.mpvpaper = {
     enable = true;
     package = pkgs.mpvpaper.overrideAttrs (old: {

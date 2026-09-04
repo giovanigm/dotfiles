@@ -273,6 +273,7 @@ hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
 local closeWindowBind = hl.bind(mainMod .. " + W", hl.dsp.window.close())
 -- closeWindowBind:set_enabled(false)
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = 1 })) -- maximize
+hl.bind(mainMod .. " + I", hl.dsp.window.fullscreen({ mode = 0 })) -- true fullscreen
 hl.bind(
 	mainMod .. " + M",
 	hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'")
