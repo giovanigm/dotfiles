@@ -51,6 +51,10 @@ deploy:
 	@for dir in $(CURDIR)/.config/*; do \
 		target="$$(basename "$$dir")"; \
 		link="$(HOME)/.config/$$target"; \
+		if [ "$$target" = "DankMaterialShell" ]; then \
+			echo "Skipping $$target (DMS-owned config — plugins linked below)"; \
+			continue; \
+		fi; \
 		if [ -L "$$link" ]; then \
 			rm "$$link"; \
 		elif [ -d "$$link" ] || [ -f "$$link" ]; then \
@@ -60,6 +64,23 @@ deploy:
 		ln -sfn "$$dir" "$$link"; \
 		echo "$$target → $$link"; \
 	done
+	@# Symlink only individual DankMaterialShell plugins — the DMS config dir
+	@# is DMS-owned (settings.json, themes/) and must stay real, never a symlink
+	@if [ -d "$(CURDIR)/.config/DankMaterialShell/plugins" ]; then \
+		mkdir -p $(HOME)/.config/DankMaterialShell/plugins; \
+		for pdir in $(CURDIR)/.config/DankMaterialShell/plugins/*; do \
+			plugin="$$(basename "$$pdir")"; \
+			plink="$(HOME)/.config/DankMaterialShell/plugins/$$plugin"; \
+			if [ -L "$$plink" ]; then \
+				rm "$$plink"; \
+			elif [ -e "$$plink" ]; then \
+				echo "Backing up $$plink → $${plink}.bak"; \
+				mv "$$plink" "$${plink}.bak"; \
+			fi; \
+			ln -sfn "$$pdir" "$$plink"; \
+			echo "dms plugin $$plugin → $$plink"; \
+		done; \
+	fi
 	@# Setup /etc/nixos → repo symlink (one-time, idempotent)
 	@if [ -L /etc/nixos ]; then \
 		echo "/etc/nixos is already a symlink → $$(readlink /etc/nixos)"; \

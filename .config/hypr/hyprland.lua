@@ -363,6 +363,26 @@ hl.bind(
 	hl.dsp.exec_cmd("dms ipc call audio mute"),
 	{ locked = true, repeating = true }
 )
+
+-- Focused app volume (SUPER + vol keys): adjusts the focused window's
+-- PipeWire playback streams via focused-volume.sh; falls back to DMS global
+-- when the focused app has no streams. Mute is absolute (derived from current
+-- state) so it has no repeating — holding the key would oscillate.
+hl.bind(
+	mainMod .. " + XF86AudioRaiseVolume",
+	hl.dsp.exec_cmd("~/.config/hypr/scripts/focused-volume.sh up"),
+	{ locked = true, repeating = true }
+)
+hl.bind(
+	mainMod .. " + XF86AudioLowerVolume",
+	hl.dsp.exec_cmd("~/.config/hypr/scripts/focused-volume.sh down"),
+	{ locked = true, repeating = true }
+)
+hl.bind(
+	mainMod .. " + XF86AudioMute",
+	hl.dsp.exec_cmd("~/.config/hypr/scripts/focused-volume.sh mute"),
+	{ locked = true }
+)
 hl.bind(
 	"XF86AudioMicMute",
 	hl.dsp.exec_cmd("dms ipc call mic mute"),

@@ -847,6 +847,15 @@ deploy_dotfiles() {
         target_name=$(basename "$dir")
         local link="${config_dst}/${target_name}"
 
+        # DankMaterialShell's config dir is owned by DMS (settings.json, themes/)
+        # and must never become a symlink — only individual plugins are linked
+        # below.
+        if [ "$target_name" = "DankMaterialShell" ]; then
+            info "Skipping ${target_name} (DMS-owned config — plugins linked below)"
+            skipped=$((skipped + 1))
+            continue
+        fi
+
         if [ -L "$link" ]; then
             local current_target
             current_target=$(readlink -f "$link" 2>/dev/null || readlink "$link")
@@ -868,6 +877,38 @@ deploy_dotfiles() {
         ok "Linked: ${target_name} → ${link}"
         deployed=$((deployed + 1))
     done
+
+    # DankMaterialShell plugins: link each plugin dir individually into the
+    # DMS-owned config dir, leaving settings.json/themes as real files.
+    local dms_plugins_src="${config_src}/DankMaterialShell/plugins"
+    if [ -d "$dms_plugins_src" ]; then
+        run mkdir -p "${config_dst}/DankMaterialShell/plugins"
+        for pdir in "$dms_plugins_src"/*; do
+            [ -d "$pdir" ] || continue
+            local plugin_name
+            plugin_name=$(basename "$pdir")
+            local plink="${config_dst}/DankMaterialShell/plugins/${plugin_name}"
+
+            if [ -L "$plink" ]; then
+                local pcurrent_target
+                pcurrent_target=$(readlink -f "$plink" 2>/dev/null || readlink "$plink")
+                if [ "$pcurrent_target" = "$pdir" ]; then
+                    ok "Already linked DMS plugin: ${plugin_name}"
+                    continue
+                else
+                    info "Updating symlink: ${plugin_name} (was → ${pcurrent_target})"
+                    run rm "$plink"
+                fi
+            elif [ -e "$plink" ]; then
+                local pbackup="${plink}.bak.$(date +%Y%m%d%H%M%S)"
+                info "Backing up: ${plink} → ${pbackup}"
+                run mv "$plink" "$pbackup"
+            fi
+
+            run ln -sfn "$pdir" "$plink"
+            ok "Linked DMS plugin: ${plugin_name} → ${plink}"
+        done
+    fi
 
     # Ensure scripts are executable
     local scripts_dir="${REPO_DIR}/.config/hypr/scripts"

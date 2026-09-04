@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# =============================================================================
+# disk-report — disk usage analysis
+#
+# Usage:
+#   disk-report                     System overview (this machine)
+#   disk-report [-d N] [-n N] <dir> Breakdown of a directory
+#
+# Overview: mount usage, the largest directories under /persist (ext4 — /home
+# and /nix are bind views of directories inside it, so one /persist walk
+# counts everything exactly once) and /mnt/emuladores (NTFS games disk), the
+# /nix/store size and what nix-collect-garbage --dry-run would free, and the
+# biggest files under /persist and $HOME.
+#
+# The overview walks the full /persist and NTFS trees, so it can take up to a
+# minute. /mnt/emuladores is an automount point: it is probed without
+# triggering the mount and skipped when not mounted.
+# =============================================================================
+set -euo pipefail
+
+depth=1
+count=10
+
+usage() {
+  cat <<'EOF'
+Usage: disk-report
+       disk-report [-d N] [-n N] <dir>
+
+  <dir>         total size of <dir> followed by its largest entries
+  -d N          breakdown depth for <dir> (default 1)
+  -n N          number of entries for <dir> (default 10)
+  -h, --help    show this help
+
+With no arguments, prints a system overview: mount usage, the largest
+directories under /persist and /mnt/emuladores, the /nix/store size and what
+nix-collect-garbage --dry-run would free, and the biggest files under
+/persist and $HOME.
+
+The overview walks /persist and /mnt/emuladores in full and can take up to a
+minute. /mnt/emuladores is skipped when not mounted.
+EOF
+  exit 1
+}
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+is_mounted() {
+  # is_mounted <path> → true if a real filesystem is mounted at <path>.
+  # mountpoint alone would also match a bare autofs (systemd automount), and
+  # findmnt lists the autofs row even when the device is mounted on top of
+  # it — so require a non-autofs row.
+  local fstype
+  fstype="$(findmnt --mountpoint "$1" -n -o FSTYPE 2>/dev/null | grep -v '^autofs$' | head -n1 || true)"
+  [[ -n "$fstype" ]]
+}
+
+du_top() {
+  # du_top <dir> <depth> <count> → largest entries of <dir> (each with its
+  # full subtree size), biggest first. du's own total row is kept here — it
+  # doubles as the section total.
+  local dir="$1" maxdepth="$2" lines="$3"
+  du -x -h -d "$maxdepth" "$dir" 2>/dev/null | sort -hr | head -n "$lines" || true
+}
+
+biggest_files() {
+  # biggest_files <count> → largest files under /persist (minus the /home and
+  # /nix bind views — /persist/nix contains the store, /persist/home is the
+  # same tree as $HOME and covered by the second pass) and under $HOME.
+  # NUL-delimited end to end so filenames with spaces/newlines stay intact.
+  local lines="$1"
+  {
+    find /persist \( -path /persist/home -o -path /persist/nix \) -prune \
+      -o -type f -printf '%s\t%p\0' 2>/dev/null
+    find "$HOME" -type f -printf '%s\t%p\0' 2>/dev/null
+  } | sort -z -t$'\t' -k1,1 -nr | head -z -n "$lines" |
+    while IFS= read -r -d '' rec; do
+      size="${rec%%$'\t'*}"
+      path="${rec#*$'\t'}"
+      printf '%s\t%s\n' "$(numfmt --to=iec-i --suffix=B "$size")" "$path"
+    done || true
+}
+
+nix_gc_summary() {
+  # nix_gc_summary → the last "deleted/freed" line of
+  # nix-collect-garbage --dry-run (informational — changes nothing).
+  command -v nix-collect-garbage >/dev/null 2>&1 || return 0
+  local out summary
+  if out="$(nix-collect-garbage --dry-run 2>&1)"; then
+    summary="$(printf '%s\n' "$out" | grep -E 'deleted|freed' | tail -n1 || true)"
+    if [[ -z "$summary" ]]; then
+      # Unknown output format — show the last line, whatever it is.
+      summary="$(printf '%s\n' "$out" | tail -n1)"
+    fi
+    [[ -n "$summary" ]] || summary="(no output)"
+    printf 'nix-collect-garbage --dry-run: %s\n' "$summary"
+  else
+    echo "disk-report: nix-collect-garbage failed (daemon unreachable?)" >&2
+    printf '%s\n' "$out" | tail -n3 >&2 || true
+  fi
+}
+
+# ── Subcommands ──────────────────────────────────────────────────────────────
+
+cmd_overview() {
+  echo "── Mounts ──"
+  df -h / /persist /boot
+  if is_mounted /mnt/emuladores; then
+    df -h /mnt/emuladores | tail -n +2
+  else
+    echo "disk-report: /mnt/emuladores not mounted — skipping" >&2
+  fi
+
+  echo
+  echo "── /persist — largest directories ──"
+  du_top /persist 1 10
+  echo "(the nix entry includes the /nix/store — the store line below is informational, not additional)"
+
+  if is_mounted /mnt/emuladores; then
+    echo
+    echo "── /mnt/emuladores — largest directories ──"
+    du_top /mnt/emuladores 1 10
+  fi
+
+  echo
+  echo "── Nix store ──"
+  du -sh /nix/store 2>/dev/null || true
+  nix_gc_summary
+
+  echo
+  echo "── Biggest files (top 10) ──"
+  biggest_files 10
+}
+
+cmd_show() {
+  # cmd_show <dir> → total size of <dir> + its largest entries at -d depth
+  local dir total lines
+  if ! dir="$(realpath -q "$1" 2>/dev/null)"; then
+    echo "disk-report: not a directory: $1" >&2
+    exit 1
+  fi
+  [[ -d "$dir" ]] || { echo "disk-report: not a directory: $1" >&2; exit 1; }
+
+  total="$(du -x -sh "$dir" 2>/dev/null || true)"
+  if [[ -n "$total" ]]; then
+    printf '%s\n' "$total"
+    lines="$(du -x -h -d "$depth" "$dir" 2>/dev/null | sort -hr | awk -F '\t' -v self="$dir" '$2 != self' | head -n "$count" || true)"
+    if [[ -n "$lines" ]]; then
+      printf '%s\n' "$lines"
+    else
+      echo "disk-report: no readable entries under $dir" >&2
+    fi
+  else
+    echo "disk-report: cannot read $dir (permission denied?)" >&2
+    exit 1
+  fi
+}
+
+# ── Entry point ──────────────────────────────────────────────────────────────
+
+# getopts cannot parse --help — scan for it first
+for arg in "$@"; do
+  if [[ "$arg" == "--help" ]]; then
+    usage
+  fi
+done
+
+while getopts "d:n:h" opt; do
+  case "$opt" in
+    d) depth="$OPTARG" ;;
+    n) count="$OPTARG" ;;
+    h) usage ;;
+    *) usage ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+[[ "$depth" =~ ^[0-9]+$ ]] || usage
+[[ "$count" =~ ^[0-9]+$ ]] || usage
+
+if [[ $# -eq 0 ]]; then
+  cmd_overview
+elif [[ $# -eq 1 ]]; then
+  cmd_show "$1"
+else
+  usage
+fi
