@@ -12,6 +12,10 @@
       "/var/lib/systemd/timers"
       "/var/lib/docker"
       "/var/db/sudo"
+      # Greeter memory (last session/user, light/dark mode) — tmpfs otherwise,
+      # tmpfiles creates it 0750 dms-greeter:dms-greeter, match that on the
+      # persisted copy so the greeter can write memory.json
+      { directory = "/var/lib/dms-greeter"; user = "dms-greeter"; group = "dms-greeter"; mode = "0750"; }
     ];
 
     files = [

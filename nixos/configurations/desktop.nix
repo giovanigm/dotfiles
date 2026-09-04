@@ -22,6 +22,32 @@
     enable = true;
     withUWSM = true;       # Recommended launcher on NixOS 24.11+
     xwayland.enable = true;
+    # Hide the plain (non-UWSM) session from the greeter. The package ships
+    # BOTH hyprland.desktop and hyprland-uwsm.desktop in share/wayland-sessions
+    # (linked into the system profile via systemPackages + pathsToLink).
+    # DankGreeter defaults to the FIRST session alphabetically (hyprland.desktop)
+    # and its last-session memory lives on tmpfs — so every boot logged into
+    # plain Hyprland: no UWSM → graphical-session.target never starts →
+    # dms.service (bar) and hyprpolkitagent never run. Move the plain entry
+    # out of the session dir (still reachable by store path) and repoint the
+    # uwsm entry's Exec at it — uwsm parses an absolute path directly and
+    # skips the XDG session-dir lookup.
+    package = pkgs.hyprland.overrideAttrs (old: {
+      passthru = (old.passthru or { }) // {
+        # desktops.drv validates every providedSessions entry against the
+        # share/wayland-sessions/*.desktop files in the package — the plain
+        # session is moved below, so only the uwsm one remains provided
+        providedSessions = [ "hyprland-uwsm" ];
+      };
+      postInstall = (old.postInstall or "") + ''
+        mkdir -p "$out/share/hyprland/sessions"
+        mv "$out/share/wayland-sessions/hyprland.desktop" \
+          "$out/share/hyprland/sessions/hyprland.desktop"
+        substituteInPlace "$out/share/wayland-sessions/hyprland-uwsm.desktop" \
+          --replace-fail " hyprland.desktop" \
+          " $out/share/hyprland/sessions/hyprland.desktop"
+      '';
+    });
   };
 
   # ── DMS backend services ─────────────────────────────────
@@ -94,9 +120,13 @@
     </Menu>
   '';
 
+  # The hyprland module already adds xdg-desktop-portal-hyprland to
+  # xdg.portal.extraPortals (wrapped with programs.hyprland.package).
+  # Declaring it here too duplicates it in systemd.packages — once the
+  # hyprland package is overridden (above), the two portal builds diverge
+  # and the user-units aggregation fails with a duplicate symlink.
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
   };
 
   environment.sessionVariables = {
