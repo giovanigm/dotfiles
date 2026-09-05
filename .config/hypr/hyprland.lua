@@ -56,6 +56,8 @@ hl.on("hyprland.start", function()
 	-- Reapply the last applied wallpaper (state in ~/.cache/set-wallpaper);
 	-- fall back to the default video on first boot when no state exists yet.
 	hl.exec_cmd("~/.local/bin/set-wallpaper --last || ~/.local/bin/set-wallpaper ~/Videos/Wallpapers/night-city-pixel-moewalls-com.mp4")
+	-- Reapply the last SDR brightness level (state in ~/.cache/hypr/sdr-brightness)
+	hl.exec_cmd("~/.config/hypr/scripts/sdr-brightness.sh restore")
 end)
 
 -------------------------------
@@ -399,6 +401,20 @@ hl.bind(
 	{ locked = true, repeating = true }
 )
 
+-- SDR brightness (SUPER + brightness keys): adjusts Hyprland's SDR→HDR
+-- tone-mapping; the plain brightness keys keep controlling the monitor's
+-- hardware backlight via DDC/CI
+hl.bind(
+	mainMod .. " + XF86MonBrightnessUp",
+	hl.dsp.exec_cmd("~/.config/hypr/scripts/sdr-brightness.sh up"),
+	{ locked = true, repeating = true }
+)
+hl.bind(
+	mainMod .. " + XF86MonBrightnessDown",
+	hl.dsp.exec_cmd("~/.config/hypr/scripts/sdr-brightness.sh down"),
+	{ locked = true, repeating = true }
+)
+
 -- MPRIS media keys via DMS IPC (shows DMS now-playing popup)
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("dms ipc call mpris next"), { locked = true })
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd("dms ipc call mpris playPause"), { locked = true })
@@ -466,3 +482,31 @@ hl.layer_rule({
 require("dms.colors")
 require("dms.layout")
 require("dms.outputs")
+
+-- Persistent desktop HDR (NVIDIA RTX 3080 + Asus VG27AQL1A, DP-5).
+-- MUST stay AFTER the dms.* requires above: monitor rules apply in order and
+-- later rules override earlier ones per field, so this wins over the
+-- DMS-generated rule in dms/outputs.lua. Every field DMS sets is re-pinned
+-- here so DMS regenerating outputs.lua cannot touch HDR.
+hl.monitor({
+	output = "desc:ASUSTek COMPUTER INC VG27AQL1A M1LMQS012381",
+	mode = "2560x1440@144.006", -- keep 144 Hz; DP 1.2 cannot do 10-bit @ 144
+	position = "0x0",
+	scale = 1,
+	vrr = 0,
+	bitdepth = 8,     -- explicit: 10-bit would drop mode to 120 Hz; the known
+	                  -- 0.55.x NVIDIA dark-window bug only repros at 10-bit
+	cm = "hdredid",   -- HDR PQ transfer + EDID primaries (best fit for this panel).
+	                  -- Fallback values: "hdr" (BT2020 primaries), "srgb" (SDR)
+	sdrbrightness = 1.2, -- SDR→HDR tone-map brightness; 1.0 default reads dim
+	sdr_max_luminance = 250, -- SDR white ceiling (nits); default 80 = dim desktop
+})
+
+-- Full-precision rendering in HDR: fp16 tone-mapping caused fuzzy/shimmering
+-- text on bright backgrounds (known fp16 visual-anomaly class upstream).
+-- If the hot reload doesn't visibly apply it, it takes effect at next login.
+hl.config({
+	render = {
+		use_fp16 = 0,
+	},
+})
