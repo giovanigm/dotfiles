@@ -82,3 +82,15 @@ The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.c
 - When modifying NixOS config, the CLAUDE.md at `/etc/nixos/` (user's home) says to write to `/tmp/configuration.nix` and let the user copy it — **but** this repo's files under `nixos/` can be edited directly since they're the source of truth
 - Neovim plugins reference: leader is `<Space>`, localleader is `,`, tabs are 2 spaces, clipboard is `unnamedplus`
 - Everything is themed with Catppuccin Mocha/Mauve
+
+## Known quirks (survives reformats — do not regress)
+
+### Eden emulator wrapper (`nixos/configurations/packages/emulators.nix`)
+
+The `eden` package is wrapped with `symlinkJoin` + `wrapProgram` for three reasons — **do not simplify the wrapper away**:
+
+1. Eden's Wayland UI is broken upstream (Qt file dialogs crash); `QT_QPA_PLATFORM=xcb` + `SDL_VIDEODRIVER=x11` force XWayland.
+2. The file dialog is a GTK3 dialog (session-wide `QT_QPA_PLATFORMTHEME=gtk3`), and apps launched from **DMS spotlight** inherit an `XDG_DATA_DIRS` with **no GSettings schemas** — GTK3 aborts with `No GSettings schemas are installed on the system` (SIGABRT when opening Load File/Folder). The wrapper prepends the gtk3 + gsettings-desktop-schemas schema dirs (both 26.05 and nixpkgs-master builds, since the dialog loads gtk3 from the session's qt6gtk3 plugin *and* Eden's own deps) to `XDG_DATA_DIRS`.
+3. Terminal launches were unaffected because shell env has the schemas; only DMS-spotlight launches crashed. The crash looks like a Wayland problem but isn't.
+
+The underlying gap is DMS spotlight's env: other GTK-dialog apps launched from spotlight can hit the same abort. The systemic fix (not yet applied) is enriching the DMS service env with the schema dirs.
