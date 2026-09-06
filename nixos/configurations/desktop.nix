@@ -157,6 +157,10 @@
     NIXOS_OZONE_WL = "1";
     # GTK4: force NVIDIA OpenGL backend (Vulkan default is buggy on NVIDIA)
     GSK_RENDERER = "ngl";
+    # MangoHud: enable the implicit Vulkan layer env-wide; the HUD stays
+    # hidden (no_display in ~/.config/MangoHud/MangoHud.conf) until the
+    # Shift_R+F9 toggle is pressed in a focused game/emulator.
+    MANGOHUD = "1";
   };
 
   # ── Wait for GPU before starting greetd (prevents Wayland race) ─

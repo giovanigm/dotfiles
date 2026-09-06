@@ -27,6 +27,7 @@
     vlc
     steam
     cemu
+    mangohud         # GPU/CPU overlay for games & emulators (toggle: Shift_R+F9)
     gimp
     qbittorrent
     qalculate-gtk
