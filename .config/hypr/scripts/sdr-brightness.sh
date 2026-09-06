@@ -30,7 +30,7 @@ MONITOR="desc:ASUSTek COMPUTER INC VG27AQL1A M1LMQS012381"
 STEP=0.05
 MIN=0.5
 MAX=2.5
-DEFAULT=1.2
+DEFAULT=0.8
 
 current="$(cat "$STATE" 2>/dev/null || true)"
 if [[ -z "$current" ]]; then

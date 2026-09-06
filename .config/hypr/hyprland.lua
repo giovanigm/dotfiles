@@ -500,7 +500,8 @@ hl.monitor({
 	                  -- Fallback values: "hdr" (BT2020 primaries), "srgb" (SDR)
 	sdr_eotf = "srgb", -- SDR surfaces are sRGB-encoded (not gamma22); wrong EOTF
 	                  -- shifts near-white contrast → fuzzy text on bright bg
-	sdrbrightness = 1.2, -- SDR→HDR tone-map brightness; 1.0 default reads dim
+	sdrbrightness = 0.8, -- SDR→HDR tone-map brightness; default 80%, adjust with
+	                  -- SUPER + brightness keys (sdr-brightness.sh)
 	sdr_max_luminance = 250, -- SDR white ceiling (nits); default 80 = dim desktop
 })
 
@@ -510,5 +511,14 @@ hl.monitor({
 hl.config({
 	render = {
 		use_fp16 = 0,
+	},
+})
+
+-- Hardware cursor plane renders at full brightness in HDR on NVIDIA (it
+-- bypasses tone-mapping); use the software cursor, which is tone-mapped
+-- like every other surface. Trade-off: cursor is GPU-rendered.
+hl.config({
+	cursor = {
+		no_hardware_cursors = 1,
 	},
 })
