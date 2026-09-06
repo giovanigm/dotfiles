@@ -498,6 +498,8 @@ hl.monitor({
 	                  -- 0.55.x NVIDIA dark-window bug only repros at 10-bit
 	cm = "hdredid",   -- HDR PQ transfer + EDID primaries (best fit for this panel).
 	                  -- Fallback values: "hdr" (BT2020 primaries), "srgb" (SDR)
+	sdr_eotf = "srgb", -- SDR surfaces are sRGB-encoded (not gamma22); wrong EOTF
+	                  -- shifts near-white contrast → fuzzy text on bright bg
 	sdrbrightness = 1.2, -- SDR→HDR tone-map brightness; 1.0 default reads dim
 	sdr_max_luminance = 250, -- SDR white ceiling (nits); default 80 = dim desktop
 })

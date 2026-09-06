@@ -27,7 +27,7 @@ flock -n 9 || exit 0
 
 STATE="${XDG_CACHE_HOME:-$HOME/.cache}/hypr/sdr-brightness"
 MONITOR="desc:ASUSTek COMPUTER INC VG27AQL1A M1LMQS012381"
-STEP=0.1
+STEP=0.05
 MIN=0.5
 MAX=2.5
 DEFAULT=1.2
@@ -40,8 +40,8 @@ if [[ -z "$current" ]]; then
 fi
 
 case "$mode" in
-  up)   new="$(awk -v v="$current" -v s="$STEP" -v m="$MAX" 'BEGIN { printf "%.1f", (v + s > m ? m : v + s) }')" ;;
-  down) new="$(awk -v v="$current" -v s="$STEP" -v m="$MIN" 'BEGIN { printf "%.1f", (v - s < m ? m : v - s) }')" ;;
+  up)   new="$(awk -v v="$current" -v s="$STEP" -v m="$MAX" 'BEGIN { printf "%.2f", (v + s > m ? m : v + s) }')" ;;
+  down) new="$(awk -v v="$current" -v s="$STEP" -v m="$MIN" 'BEGIN { printf "%.2f", (v - s < m ? m : v - s) }')" ;;
   restore) new="$current" ;;
 esac
 

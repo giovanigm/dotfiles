@@ -55,6 +55,10 @@ deploy:
 			echo "Skipping $$target (DMS-owned config — plugins linked below)"; \
 			continue; \
 		fi; \
+		if [ "$$target" = "fontconfig" ]; then \
+			echo "Skipping $$target (Home-Manager-owned config — conf.d files linked below)"; \
+			continue; \
+		fi; \
 		if [ -L "$$link" ]; then \
 			rm "$$link"; \
 		elif [ -d "$$link" ] || [ -f "$$link" ]; then \
@@ -79,6 +83,24 @@ deploy:
 			fi; \
 			ln -sfn "$$pdir" "$$plink"; \
 			echo "dms plugin $$plugin → $$plink"; \
+		done; \
+	fi
+	@# Symlink only individual fontconfig conf.d files — ~/.config/fontconfig
+	@# is Home-Manager-owned (the fonts.fontconfig module regenerates its own
+	@# files there), so the dir must stay real, never a symlink
+	@if [ -d "$(CURDIR)/.config/fontconfig/conf.d" ]; then \
+		mkdir -p $(HOME)/.config/fontconfig/conf.d; \
+		for f in $(CURDIR)/.config/fontconfig/conf.d/*; do \
+			name="$$(basename "$$f")"; \
+			link="$(HOME)/.config/fontconfig/conf.d/$$name"; \
+			if [ -L "$$link" ]; then \
+				rm "$$link"; \
+			elif [ -e "$$link" ]; then \
+				echo "Backing up $$link → $${link}.bak"; \
+				mv "$$link" "$${link}.bak"; \
+			fi; \
+			ln -sfn "$$f" "$$link"; \
+			echo "fontconfig conf $$name → $$link"; \
 		done; \
 	fi
 	@# Setup /etc/nixos → repo symlink (one-time, idempotent)
