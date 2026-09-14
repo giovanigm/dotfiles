@@ -33,6 +33,31 @@ norm() {
   tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9'
 }
 
+# Lowercased words of >= 3 chars, minus reverse-DNS boilerplate
+words() {
+  tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '\n' |
+    grep -vE '^(info|com|org|net|io|app|www)$' | grep -E '.{3,}' || true
+}
+
+# Fuzzy match between two raw names: full-string contains-either-way on the
+# normalized forms ("discord" vs "discordwrapped"), then any-word
+# contains-either-way on the raw forms ("info.cemu.Cemu" vs "Cemu Cubeb").
+matches() {
+  local a="$1" b="$2" an bn aw bw
+  an="$(printf '%s' "$a" | norm)"
+  bn="$(printf '%s' "$b" | norm)"
+  [[ -n "$an" && -n "$bn" ]] || return 1
+  case "$an" in *"$bn"*) return 0 ;; esac
+  case "$bn" in *"$an"*) return 0 ;; esac
+  for aw in $(printf '%s' "$a" | words); do
+    for bw in $(printf '%s' "$b" | words); do
+      case "$aw" in *"$bw"*) return 0 ;; esac
+      case "$bw" in *"$aw"*) return 0 ;; esac
+    done
+  done
+  return 1
+}
+
 # Focused window class (empty when nothing is focused)
 focused_class="$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty' 2>/dev/null || true)"
 class_norm="$(printf '%s' "$focused_class" | norm)"
@@ -90,35 +115,30 @@ if [[ -n "$class_norm" ]]; then
         sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2; exit
       }')"
     [[ "$media_class" == "Stream/Output/Audio" ]] || continue
-    candidate="$(printf '%s\n' "$props" | awk -F' = ' '
-      /^[[:space:]]*\*?[[:space:]]*application.name[[:space:]]*=/ && !app {
-        sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); app = $2
-      }
-      /^[[:space:]]*\*?[[:space:]]*media.name[[:space:]]*=/ && !media {
-        sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); media = $2
-      }
-      /^[[:space:]]*\*?[[:space:]]*application.process.binary[[:space:]]*=/ && !bin {
-        sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); bin = $2
-      }
-      END { print (app ? app : (media ? media : bin)) }')"
-    candidate_norm="$(printf '%s' "$candidate" | norm)"
-    [[ -n "$candidate_norm" ]] || continue
-    # Contains-either-way fuzzy match: "discord" matches "Discord",
-    # "brave-browser" matches "Brave", etc.
+    # Match against every name the stream exposes, not just application.name:
+    # Discord's stream is "WEBRTC VoiceEngine" and only its process binary
+    # (.Discord-wrapped) matches the window class "discord"; Cemu's window
+    # class is the reverse-DNS "info.cemu.Cemu" and only word-level matching
+    # against "Cemu Cubeb" catches it.
     match=0
-    case "$candidate_norm" in
-      *"$class_norm"*) match=1 ;;
-      *)
-        case "$class_norm" in
-          *"$candidate_norm"*) match=1 ;;
-        esac
-        ;;
-    esac
-    if [[ "$match" == 1 ]]; then
-      matching_ids="$matching_ids $id"
-      # Display name for the OSD toast (all matched streams share the app)
-      [[ -n "$app_name" ]] || app_name="$candidate"
-    fi
+    while IFS= read -r candidate; do
+      [[ -n "$(printf '%s' "$candidate" | norm)" ]] || continue
+      if matches "$candidate" "$focused_class"; then
+        # Display name for the OSD toast; candidates are printed in
+        # application.name, media.name, binary order, so the first match
+        # prefers the friendliest name
+        [[ -n "$app_name" ]] || app_name="$candidate"
+        match=1
+        break
+      fi
+    done < <(printf '%s\n' "$props" | awk -F' = ' '
+      /^[[:space:]]*\*?[[:space:]]*application.name[[:space:]]*=/ ||
+      /^[[:space:]]*\*?[[:space:]]*media.name[[:space:]]*=/ ||
+      /^[[:space:]]*\*?[[:space:]]*application.process.binary[[:space:]]*=/ {
+        sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2
+      }')
+    [[ "$match" == 1 ]] || continue
+    matching_ids="$matching_ids $id"
   done < <(wpctl status 2>/dev/null | awk '
     /Streams:/ { in_s = 1; base = -1; next }
     in_s && /^[[:space:]]*[A-Za-z]/ { in_s = 0 }
