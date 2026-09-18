@@ -3,6 +3,15 @@ return {
   ft = "markdown",
   dependencies = { "nvim-treesitter/nvim-treesitter" },
   opts = {
+    -- LSP hover popups (and cmp docs) are filetype=markdown buffers inside
+    -- floating windows. Rendering there breaks the popup — code borders and
+    -- backgrounds (min_width=60, thick border) overflow the tiny float and
+    -- paint over the content. Never attach to a buffer shown in a float.
+    ignore = function(buf)
+      local win = vim.fn.bufwinid(buf)
+      return win ~= -1 and vim.api.nvim_win_get_config(win).relative ~= ""
+    end,
+
     preset = "obsidian", -- mimic Obsidian UI (colored headings, hidden markup)
     -- Plugin enables this by default; disable to keep normal mode fully rendered
     anti_conceal = { enabled = false },

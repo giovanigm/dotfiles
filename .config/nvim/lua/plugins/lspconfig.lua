@@ -103,7 +103,22 @@ return {
       })
 
       local map = vim.keymap.set
-      map("n", "K", vim.lsp.buf.hover, {})
+      -- Hover first; on code with compile errors rust-analyzer returns no
+      -- hover, so fall back to showing the diagnostic under the cursor.
+      map("n", "K", function()
+        local clients = vim.lsp.get_clients({ bufnr = 0 })
+        if #clients == 0 then
+          return vim.diagnostic.open_float({ scope = "cursor" })
+        end
+        local params = vim.lsp.util.make_position_params(0, clients[1].offset_encoding)
+        vim.lsp.buf_request(0, "textDocument/hover", params, function(err, result)
+          if err or not result then
+            vim.diagnostic.open_float({ scope = "cursor" })
+          else
+            vim.lsp.buf.hover()
+          end
+        end)
+      end, { desc = "LSP: hover, or diagnostic under cursor" })
       map("n", "gD", vim.lsp.buf.declaration, { desc = "LSP: go to declaration" })
       map("n", "gd", vim.lsp.buf.definition, { desc = "LSP: Go to definition" })
       -- vim.keymap.set("n", "<leader>gd", vim.lsp.buf.definition, {})

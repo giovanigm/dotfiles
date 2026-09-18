@@ -41,4 +41,9 @@
     # Needed by Rust `-sys` crates to locate system libraries.
     pkg-config
   ];
+
+  # rust-analyzer (mason.nvim binary) needs the stdlib sources for hover/goto.
+  # rustLibSrc is the `library/` dir (core, std, alloc) from the pinned rustc's
+  # source tarball — exactly the layout rust-analyzer expects in RUST_SRC_PATH.
+  environment.sessionVariables.RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
 }

@@ -3,6 +3,12 @@
 # Deployed by 'make deploy' (symlink from ~/.zshrc)
 # =============================================================================
 
+# ── NixOS session variables ───────────────────────────────────────────────────
+# environment.sessionVariables land in /etc/set-environment and reach shells
+# only through the login (PAM) chain — source it so new shells pick up session
+# vars (e.g. RUST_SRC_PATH) without re-login.
+[ -f /etc/set-environment ] && source /etc/set-environment
+
 # ── fvm (Flutter Version Management) ─────────────────────────────────────────
 # After `fvm install 3.44 && fvm global 3.44`, this makes the global Flutter
 # SDK available on PATH.
