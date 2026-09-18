@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 This is a **dotfiles repository** — not an application. It manages user configuration for a NixOS workstation with Hyprland, Neovim, Quickshell, Ghostty, and other tools. Deployment works through two independent mechanisms:
-- **`make deploy`** — symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, every file under `.local/bin/` into `~/.local/bin/`, and every directory under `.config/` into `~/.config/`, backing up existing files
+- **`make deploy`** — symlinks `.zshrc` to `~/.zshrc`, `.XCompose` to `~/.XCompose`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, every file under `.local/bin/` into `~/.local/bin/`, and every directory under `.config/` into `~/.config/`, backing up existing files
 - **`nixos-rebuild-switch`** — shell function (in `.zshrc`) that runs `sudo nixos-rebuild switch --flake /etc/nixos#nixos`
 
 The NixOS system directory (`nixos/`) is also symlinked from `/etc/nixos` via a systemd tmpfiles rule (set in `configurations/system.nix`).
@@ -14,7 +14,7 @@ The NixOS system directory (`nixos/`) is also symlinked from `/etc/nixos` via a 
 
 | Command | What it does | Where |
 |---------|-------------|-------|
-| `make deploy` | Symlink `.zshrc`, `.claude/statusline.sh`, `.local/bin/*`, and all `.config/*` dirs (backups existing) | Makefile |
+| `make deploy` | Symlink `.zshrc`, `.XCompose`, `.claude/statusline.sh`, `.local/bin/*`, and all `.config/*` dirs (backups existing) | Makefile |
 | `make setup-nixos` | One-time setup: symlink `/etc/nixos` → repo | Makefile |
 | `nixos-rebuild-switch` | Rebuild and switch NixOS system | `.zshrc` |
 | `nixos-rebuild-boot` | Rebuild NixOS and update boot entries (no live switch) | `.zshrc` |
@@ -63,7 +63,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 
 ### Dotfiles (`make deploy`)
 
-The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, iterates over `.local/bin/*` to create per-file symlinks in `~/.local/bin/`, and iterates over `.config/*` to create symlinks in `~/.config/` (with a special case: `DankMaterialShell` would only ever deploy its `plugins/*` individually, since the DMS config dir is DMS-owned). Each subdirectory is a standalone app config:
+The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.XCompose` to `~/.XCompose`, `.claude/statusline.sh` to `~/.claude/statusline.sh`, iterates over `.local/bin/*` to create per-file symlinks in `~/.local/bin/`, and iterates over `.config/*` to create symlinks in `~/.config/` (with a special case: `DankMaterialShell` would only ever deploy its `plugins/*` individually, since the DMS config dir is DMS-owned). Each subdirectory is a standalone app config:
 
 - **`.local/bin/set-wallpaper`** — Unified wallpaper manager. Sets images via awww, videos via mpvpaper, or picks random images from a directory. `--next` cycles wallpapers, `--last` reapplies the last wallpaper (used on Hyprland login and lock/unlock), `--suspend`/`--resume` handle the screen-lock lifecycle (fixes mpvpaper freezing after lock/unlock).
 - **`.local/bin/disk-report`** — Disk usage analysis. No args: system overview (df on key mounts, largest dirs under `/persist` and `/mnt/emuladores`, `/nix/store` size + `nix-collect-garbage --dry-run`, biggest files). With `[-d N] [-n N] <dir>`: total + largest entries of a directory. One `/persist` walk counts everything once since `/home` and `/nix` are binds of dirs inside it; probes `/mnt/emuladores` without triggering its automount.
@@ -75,6 +75,7 @@ The `Makefile` symlinks `.zshrc` to `~/.zshrc`, `.claude/statusline.sh` to `~/.c
 - **`.config/mako/`** — Notification daemon. 5-second auto-dismiss, peach border on high urgency.
 - **`.config/yay/`** — AUR helper security hooks. Scans PKGBUILDs for dangerous patterns (curl | bash, rm -rf /, chmod 777), flags SKIP checksums, warns about unfamiliar source domains, and logs all installs.
 - **`.claude/statusline.sh`** — Claude Code statusline. Renders folder, git branch, model name, token usage, and credits in the terminal status bar. Catppuccin Mocha themed.
+- **`.XCompose`** — Compose table override so `'+c` produces `ç` on the us alt-intl layout (see Known quirks below). Loaded by fcitx5 via libxkbcommon.
 
 ### Key conventions
 
@@ -94,3 +95,7 @@ The `eden` package is wrapped with `symlinkJoin` + `wrapProgram` for three reaso
 3. Terminal launches were unaffected because shell env has the schemas; only DMS-spotlight launches crashed. The crash looks like a Wayland problem but isn't.
 
 The underlying gap is DMS spotlight's env: other GTK-dialog apps launched from spotlight can hit the same abort. The systemic fix (not yet applied) is enriching the DMS service env with the schema dirs.
+
+### Cedilla compose override (`.XCompose`)
+
+`'+c` must produce `ç` on the us alt-intl layout, but the en_US compose table maps `<dead_acute> <c>` to `ć` (compose-table behavior — an XKB symbols variant cannot fix this). All text input routes through fcitx5, whose dead-key handling is libxkbcommon's `xkb_compose_table_new_from_locale`, so `.XCompose` (deployed by `make deploy`) is the single override point. Two non-obvious facts: fcitx5 loads the compose table **only at startup** (restart it or re-login after edits), and `~/.XCompose` **replaces** the system table — the `include "%L"` line is mandatory or every other dead-key sequence (é, à, ñ, ...) breaks.

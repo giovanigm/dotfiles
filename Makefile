@@ -21,6 +21,17 @@ deploy:
 	fi; \
 	ln -sfn "$$zshrc_src" "$$zshrc_link"; \
 	echo ".zshrc → $$zshrc_link"
+	@# Symlink .XCompose (cedilla: '+c → ç via fcitx5/xkbcommon compose table)
+	@xcompose_link="$(HOME)/.XCompose"; \
+	xcompose_src="$(CURDIR)/.XCompose"; \
+	if [ -L "$$xcompose_link" ]; then \
+		rm "$$xcompose_link"; \
+	elif [ -f "$$xcompose_link" ]; then \
+		echo "Backing up $$xcompose_link → $${xcompose_link}.bak"; \
+		mv "$$xcompose_link" "$${xcompose_link}.bak"; \
+	fi; \
+	ln -sfn "$$xcompose_src" "$$xcompose_link"; \
+	echo ".XCompose → $$xcompose_link"
 	@# Symlink .claude/statusline.sh
 	@mkdir -p $(HOME)/.claude
 	@statusline_link="$(HOME)/.claude/statusline.sh"; \

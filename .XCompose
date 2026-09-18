@@ -1,0 +1,10 @@
+# Cedilla: '+c → ç, '+C → Ç (US alt-intl layout)
+#
+# The en_US compose table maps <dead_acute> <c> → ć; this restores the
+# Windows-style cedilla. fcitx5 loads this file via libxkbcommon at startup
+# and it REPLACES the system table — the include below is mandatory, or
+# every other dead-key sequence (é, à, ñ, ...) silently breaks.
+include "%L"
+
+<dead_acute> <c> : "ç" U00E7
+<dead_acute> <C> : "Ç" U00C7
