@@ -11,6 +11,10 @@ export PATH="$FVM_CACHE_PATH/default/bin:$PATH"
 export PATH="$HOME/.pub-cache/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
+# ── Rust (cargo) ───────────────────────────────────────────────────────────────
+# `cargo install` puts binaries here (rustup shims would too).
+export PATH="$HOME/.cargo/bin:$PATH"
+
 alias nixos-rebuild-switch="sudo nixos-rebuild switch --flake /etc/nixos#nixos"
 alias nixos-rebuild-boot="sudo nixos-rebuild boot --flake /etc/nixos#nixos"
 alias nixos-rebuild-test="sudo nixos-rebuild test --flake /etc/nixos#nixos"
