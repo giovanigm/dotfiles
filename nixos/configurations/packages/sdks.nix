@@ -31,5 +31,14 @@
 
     # Needed by mason.nvim to build Go packages with cgo (gopls, gofumpt, etc.)
     gcc
+
+    # Rust toolchain (stable) → provides `cargo` / `rustc` / `rustfmt` / `clippy`.
+    cargo
+    rustc
+    rustfmt
+    clippy
+
+    # Needed by Rust `-sys` crates to locate system libraries.
+    pkg-config
   ];
 }

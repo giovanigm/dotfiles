@@ -19,7 +19,7 @@ return {
     lazy = false,
     dependencies = { "mason-org/mason.nvim" },
     opts = {
-      ensure_installed = { "ts_ls", "gopls", "lua_ls", "jsonls", "yamlls", "hyprls" },
+      ensure_installed = { "ts_ls", "gopls", "lua_ls", "jsonls", "yamlls", "hyprls", "rust_analyzer" },
     },
   },
   {
@@ -36,7 +36,7 @@ return {
     "neovim/nvim-lspconfig",
     lazy = false,
     config = function()
-      local servers = { "gopls", "ts_ls", "lua_ls", "jsonls", "yamlls", "hyprls" }
+      local servers = { "gopls", "ts_ls", "lua_ls", "jsonls", "yamlls", "hyprls", "rust_analyzer" }
       vim.lsp.enable(servers)
 
       vim.lsp.config("gopls", {
