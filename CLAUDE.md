@@ -36,13 +36,13 @@ There are no tests, no linting, no build step — this is purely configuration f
 | `flake.nix` | Entry point. Declares inputs (nixpkgs, nixpkgs-master, impermanence, home-manager) and lists top-level modules |
 | `configuration.nix` | Thin orchestrator. Imports all modules from `configurations/` and bridges home-manager |
 | `configurations/nix.nix` | Nix daemon settings (experimental-features) |
-| `configurations/boot.nix` | GRUB + Windows 11 dual-boot (manual chainload entry on separate ESP), kernel pinned to 6.12 LTS (NVIDIA 595 predates 6.18 → no HDMI audio component bind on it) |
+| `configurations/boot.nix` | GRUB + Windows 11 dual-boot (manual chainload entry on separate ESP) |
 | `configurations/networking.nix` | Hostname + NetworkManager |
 | `configurations/locale.nix` | Timezone, locale/i18n, keyboard layout, Fcitx5 input method |
 | `configurations/desktop.nix` | SDDM + Hyprland (UWSM), xdg-portal, env vars, GPU wait |
 | `configurations/drm-debug.nix` | Logs DRM connector statuses to `/var/log/drm-connectors.log` at boot + hotplug events to journal (tag `drm-hotplug`) — makes blind boots self-diagnosing |
-| `configurations/nvidia.nix` | NVIDIA RTX 3080: proprietary driver, **closed** kernel module (open one never binds HDA audio → no ELD → HDMI audio dead), modesetting, power mgmt, hdmi_deepcolor=0 + disable_hdmi_frl=1 for TV sync |
-| `configurations/audio.nix` | PipeWire (ALSA, PulseAudio, JACK, WirePlumber) |
+| `configurations/nvidia.nix` | NVIDIA RTX 3080: proprietary driver, closed kernel module, modesetting, power mgmt. kernelParams carry the HDMI TV fixes: `RMConnectToAudio=1` (audio ELD), `hdmi_deepcolor=0` + `disable_hdmi_frl=1` (video sync) — see Known quirks |
+| `configurations/audio.nix` | PipeWire (ALSA, PulseAudio, JACK, WirePlumber) + `nvidia-hdmi-profile` user service (forces `output:hdmi-stereo` on the NVIDIA card each boot; WP 0.5.14 never selects it) |
 | `configurations/docker.nix` | Docker daemon with weekly auto-prune |
 | `configurations/filesystems.nix` | NTFS driver (ntfs3 + ntfs-3g), udisks2, gvfs, polkit rules |
 | `configurations/fonts.nix` | Font packages (JetBrains Mono Nerd Font) |
@@ -60,7 +60,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 
 **Flake inputs**: `nixpkgs` (nixos-26.05), `nixpkgs-master` (unfree), `impermanence`, `home-manager` (follows nixpkgs).
 
-**Key system details**: Dual-boot with Windows 11 (separate ESP, manual GRUB chainload entry, older generations in a submenu), NVIDIA RTX 3080 with proprietary driver + closed kernel module + modesetting, kernel pinned to 6.12 LTS (see boot.nix), SDDM + Hyprland (UWSM launcher).
+**Key system details**: Dual-boot with Windows 11 (separate ESP, manual GRUB chainload entry, older generations in a submenu), NVIDIA RTX 3080 with proprietary driver + closed kernel module + modesetting, SDDM + Hyprland (UWSM launcher).
 
 ### Dotfiles (`make deploy`)
 
@@ -100,3 +100,13 @@ The underlying gap is DMS spotlight's env: other GTK-dialog apps launched from s
 ### Cedilla compose override (`.XCompose`)
 
 `'+c` must produce `ç` on the us alt-intl layout, but the en_US compose table maps `<dead_acute> <c>` to `ć` (compose-table behavior — an XKB symbols variant cannot fix this). All text input routes through fcitx5, whose dead-key handling is libxkbcommon's `xkb_compose_table_new_from_locale`, so `.XCompose` (deployed by `make deploy`) is the single override point. Two non-obvious facts: fcitx5 loads the compose table **only at startup** (restart it or re-login after edits), and `~/.XCompose` **replaces** the system table — the `include "%L"` line is mandatory or every other dead-key sequence (é, à, ñ, ...) breaks.
+
+### HDMI TV support (`nvidia.nix` kernelParams + `audio.nix` service)
+
+A Samsung TV on the RTX 3080's HDMI needs three kernel params to work at all — **do not "clean up" any of them without re-testing at the TV**:
+
+1. `nvidia_modeset.hdmi_deepcolor=0` + `nvidia_modeset.disable_hdmi_frl=1` — without them the TV is **never detected** (connector stays `disconnected`, no video, not even at GRUB). The driver can't sync the TV's deep-color/HDMI 2.1 FRL request; these cap it to HDMI 2.0/8-bit. Untested which one is decisive.
+2. `nvidia.NVreg_RegistryDwords=RMConnectToAudio=1` — without it video works but audio is dead: the RM never writes the ELD to the HDA codec (`/proc/asound/card0/eld#*` all `monitor_present 0`), the kernel rejects HDMI playback with EINVAL, and no sink can be created. Verified on drivers 595.71.05 + 615.78.08, kernels 6.12 + 6.18. The TV's EDID is perfectly valid (LPCM/AC-3/E-AC3 + HDMI VSDB) — the gate is purely the regkey.
+3. `nvidia.NVreg_EnableGpuFirmware=0` (GSP off) — added during the same debugging, never proven necessary; candidate for re-testing with GSP on. Closed driver only.
+
+Audio also needs the `nvidia-hdmi-profile` user service (`audio.nix`): WirePlumber 0.5.14 (DMS) sets `api.acp.auto-profile=false` and never selects a profile for the NVIDIA card, so the HDMI sink only exists when the service forces `output:hdmi-stereo` via pactl (newer `wpctl set-profile` silently fails against WP 0.5.14). The card name is `alsa_card.pci-0000_01_00.1` (PCI address of the GPU's HDA controller). `drm-debug.nix` logs connector statuses to `/var/log/drm-connectors.log` at every boot, which is how blind TV-boot attempts stay diagnosable.
