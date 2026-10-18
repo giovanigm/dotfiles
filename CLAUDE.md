@@ -36,11 +36,12 @@ There are no tests, no linting, no build step — this is purely configuration f
 | `flake.nix` | Entry point. Declares inputs (nixpkgs, nixpkgs-master, impermanence, home-manager) and lists top-level modules |
 | `configuration.nix` | Thin orchestrator. Imports all modules from `configurations/` and bridges home-manager |
 | `configurations/nix.nix` | Nix daemon settings (experimental-features) |
-| `configurations/boot.nix` | GRUB + Windows 11 dual-boot (manual chainload entry on separate ESP) |
+| `configurations/boot.nix` | GRUB + Windows 11 dual-boot (manual chainload entry on separate ESP), kernel pinned to 6.12 LTS (NVIDIA 595 predates 6.18 → no HDMI audio component bind on it) |
 | `configurations/networking.nix` | Hostname + NetworkManager |
 | `configurations/locale.nix` | Timezone, locale/i18n, keyboard layout, Fcitx5 input method |
 | `configurations/desktop.nix` | SDDM + Hyprland (UWSM), xdg-portal, env vars, GPU wait |
-| `configurations/nvidia.nix` | NVIDIA RTX 3080: proprietary driver, open kernel module, modesetting, power mgmt |
+| `configurations/drm-debug.nix` | Logs DRM connector statuses to `/var/log/drm-connectors.log` at boot + hotplug events to journal (tag `drm-hotplug`) — makes blind boots self-diagnosing |
+| `configurations/nvidia.nix` | NVIDIA RTX 3080: proprietary driver, **closed** kernel module (open one never binds HDA audio → no ELD → HDMI audio dead), modesetting, power mgmt, hdmi_deepcolor=0 + disable_hdmi_frl=1 for TV sync |
 | `configurations/audio.nix` | PipeWire (ALSA, PulseAudio, JACK, WirePlumber) |
 | `configurations/docker.nix` | Docker daemon with weekly auto-prune |
 | `configurations/filesystems.nix` | NTFS driver (ntfs3 + ntfs-3g), udisks2, gvfs, polkit rules |
@@ -59,7 +60,7 @@ There are no tests, no linting, no build step — this is purely configuration f
 
 **Flake inputs**: `nixpkgs` (nixos-26.05), `nixpkgs-master` (unfree), `impermanence`, `home-manager` (follows nixpkgs).
 
-**Key system details**: Dual-boot with Windows 11 (separate ESP, manual GRUB chainload entry, older generations in a submenu), NVIDIA RTX 3080 with proprietary driver + open kernel module + modesetting, SDDM + Hyprland (UWSM launcher).
+**Key system details**: Dual-boot with Windows 11 (separate ESP, manual GRUB chainload entry, older generations in a submenu), NVIDIA RTX 3080 with proprietary driver + closed kernel module + modesetting, kernel pinned to 6.12 LTS (see boot.nix), SDDM + Hyprland (UWSM launcher).
 
 ### Dotfiles (`make deploy`)
 

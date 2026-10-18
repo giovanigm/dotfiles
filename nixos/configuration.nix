@@ -7,6 +7,7 @@
     ./configurations/networking.nix
     ./configurations/locale.nix
     ./configurations/desktop.nix
+    ./configurations/drm-debug.nix
     ./configurations/filesystems.nix
     ./configurations/nvidia.nix
     ./configurations/ddcutil.nix
