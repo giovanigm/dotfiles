@@ -102,18 +102,50 @@ return {
         cmd = { "hyprls", "--stdio" },
       })
 
+      vim.lsp.config("rust_analyzer", {
+        settings = {
+          ["rust-analyzer"] = {
+            check = {
+              -- clippy is a superset of `cargo check` (rustc diagnostics + lints)
+              command = "clippy",
+              checkOnSave = true,
+            },
+          },
+        },
+      })
+
       local map = vim.keymap.set
-      -- Hover first; on code with compile errors rust-analyzer returns no
-      -- hover, so fall back to showing the diagnostic under the cursor.
+      -- Hover first; on code with compile errors rust-analyzer returns no (or
+      -- an empty) hover, so fall back to the diagnostic — under the cursor if
+      -- there is one, else on the whole line.
+      local function hover_is_empty(result)
+        if not result then
+          return true
+        end
+        local contents = result.contents
+        if type(contents) == "string" then
+          return contents == ""
+        end
+        return vim.tbl_isempty(contents or {})
+      end
+
+      local function show_diagnostic_fallback()
+        -- scope = "cursor" needs a diagnostic exactly under the cursor; if
+        -- there is none, widen to the line.
+        if vim.diagnostic.open_float({ scope = "cursor" }) == nil then
+          vim.diagnostic.open_float({ scope = "line" })
+        end
+      end
+
       map("n", "K", function()
         local clients = vim.lsp.get_clients({ bufnr = 0 })
         if #clients == 0 then
-          return vim.diagnostic.open_float({ scope = "cursor" })
+          return show_diagnostic_fallback()
         end
         local params = vim.lsp.util.make_position_params(0, clients[1].offset_encoding)
         vim.lsp.buf_request(0, "textDocument/hover", params, function(err, result)
-          if err or not result then
-            vim.diagnostic.open_float({ scope = "cursor" })
+          if err or hover_is_empty(result) then
+            show_diagnostic_fallback()
           else
             vim.lsp.buf.hover()
           end
@@ -123,7 +155,7 @@ return {
       map("n", "gd", vim.lsp.buf.definition, { desc = "LSP: Go to definition" })
       -- vim.keymap.set("n", "<leader>gd", vim.lsp.buf.definition, {})
       -- vim.keymap.set("n", "<leader>gr", vim.lsp.buf.references, {})
-      -- vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, {})
+      map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "LSP: code action" })
     end,
   },
 }

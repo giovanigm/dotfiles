@@ -5,6 +5,7 @@ return {
     formatters_by_ft = {
       lua = { "stylua" },
       go = { "gofumpt", "goimports-reviser", "golines" },
+      rust = { "rustfmt" },
       clj = { "cljfmt" },
       json = { "prettierd" },
       jsonc = { "prettierd" },

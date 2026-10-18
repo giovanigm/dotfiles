@@ -274,6 +274,7 @@ local secondMod = "SUPER + SHIFT"
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
 local closeWindowBind = hl.bind(mainMod .. " + W", hl.dsp.window.close())
 -- closeWindowBind:set_enabled(false)
+hl.bind(secondMod .. " + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/force-quit.sh"))
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = 1 })) -- maximize
 hl.bind(mainMod .. " + I", hl.dsp.window.fullscreen({ mode = 0 })) -- true fullscreen
 hl.bind(
@@ -511,6 +512,13 @@ hl.monitor({
 hl.config({
 	render = {
 		use_fp16 = 0,
+		-- cm_auto_hdr (default 1) switches the output to plain SDR when a
+		-- fullscreen SDR-only app (game) appears. That drops the hdredid
+		-- SDR→PQ tone-map, so fullscreen games lose the vividness the
+		-- windowed desktop has — low-saturation/washed-out look. Disable:
+		-- keep the HDR pipeline (and sdrbrightness/sdr_max_luminance tuning)
+		-- active for SDR games too. Hyprland Discussion #15185.
+		cm_auto_hdr = 0,
 	},
 })
 
