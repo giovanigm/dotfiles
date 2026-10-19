@@ -5,6 +5,9 @@
 #
 # Usage: focused-volume.sh up|down|mute
 #
+# Streams are matched to the focused window by process PID first, then by
+# fuzzy name matching against application.name / media.name / binary.
+#
 # Falls back to the DMS global volume commands when nothing is focused or the
 # focused app has no playback stream, so SUPER+volume never silently no-ops.
 
@@ -20,9 +23,11 @@ case "$mode" in
 esac
 
 STEP=0.05
-# Per-app streams never surpass the master (default sink) volume; fall back to
-# 1.0 if the sink volume can't be read.
-CAP_FALLBACK=1.0
+# Upper bound for raising a stream. Software gain allows >100%, and a stream
+# must stay raisable even when the master (sink) volume is lower — capping at
+# the sink made SUPER+up a no-op for any app at/above it. 1.5 mirrors
+# pavucontrol's ~153% ceiling.
+MAX_VOL=1.5
 
 # Serialize rapid key-repeat invocations (the bindings use repeating = true)
 exec 9>"${XDG_RUNTIME_DIR:-/tmp}/focused-volume.lock"
@@ -58,8 +63,9 @@ matches() {
   return 1
 }
 
-# Focused window class (empty when nothing is focused)
+# Focused window class and pid (empty when nothing is focused)
 focused_class="$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty' 2>/dev/null || true)"
+focused_pid="$(hyprctl activewindow -j 2>/dev/null | jq -r '.pid // empty' 2>/dev/null || true)"
 class_norm="$(printf '%s' "$focused_class" | norm)"
 
 apply_stream() {
@@ -72,12 +78,7 @@ apply_stream() {
     up)
       # Raising volume unmutes the stream
       [[ -n "${muted:-}" ]] && wpctl set-mute "$id" 0 >/dev/null 2>&1 || true
-      # Cap at the current master (default sink) volume; if the stream is
-      # already at or above the cap, leave it untouched
-      cap="$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null \
-        | grep -oE '[0-9]+\.[0-9]+' | head -1 || true)"
-      cap="${cap:-$CAP_FALLBACK}"
-      new="$(awk -v v="$vol" -v s="$STEP" -v m="$cap" 'BEGIN { printf "%.2f", (v >= m ? v : (v + s > m ? m : v + s)) }')"
+      new="$(awk -v v="$vol" -v s="$STEP" -v m="$MAX_VOL" 'BEGIN { printf "%.2f", (v >= m ? v : (v + s > m ? m : v + s)) }')"
       wpctl set-volume "$id" "$new" >/dev/null 2>&1 || true
       report="${app_name} $(awk -v v="$new" 'BEGIN { printf "%.0f", v * 100 }')%"
       ;;
@@ -115,28 +116,51 @@ if [[ -n "$class_norm" ]]; then
         sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2; exit
       }')"
     [[ "$media_class" == "Stream/Output/Audio" ]] || continue
-    # Match against every name the stream exposes, not just application.name:
-    # Discord's stream is "WEBRTC VoiceEngine" and only its process binary
-    # (.Discord-wrapped) matches the window class "discord"; Cemu's window
-    # class is the reverse-DNS "info.cemu.Cemu" and only word-level matching
-    # against "Cemu Cubeb" catches it.
+    # Authoritative PID match first: the focused window's own process owns the
+    # stream, which covers apps whose stream names share nothing with the
+    # window class (e.g. Azahar's "Azahar Output" under the Dekui frontend,
+    # window class "io.github.tgacquin.dekui").
     match=0
-    while IFS= read -r candidate; do
-      [[ -n "$(printf '%s' "$candidate" | norm)" ]] || continue
-      if matches "$candidate" "$focused_class"; then
-        # Display name for the OSD toast; candidates are printed in
-        # application.name, media.name, binary order, so the first match
-        # prefers the friendliest name
-        [[ -n "$app_name" ]] || app_name="$candidate"
-        match=1
-        break
-      fi
-    done < <(printf '%s\n' "$props" | awk -F' = ' '
-      /^[[:space:]]*\*?[[:space:]]*application.name[[:space:]]*=/ ||
-      /^[[:space:]]*\*?[[:space:]]*media.name[[:space:]]*=/ ||
-      /^[[:space:]]*\*?[[:space:]]*application.process.binary[[:space:]]*=/ {
-        sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2
-      }')
+    stream_pid="$(printf '%s\n' "$props" | awk -F' = ' '
+      /^[[:space:]]*\*?[[:space:]]*application.process.id[[:space:]]*=/ {
+        sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2; exit
+      }')"
+    if [[ -n "$focused_pid" && -n "$stream_pid" && "$stream_pid" == "$focused_pid" ]]; then
+      match=1
+    fi
+    # Fall back to matching every name the stream exposes, not just
+    # application.name: Discord's stream is "WEBRTC VoiceEngine" and only its
+    # process binary (.Discord-wrapped) matches the window class "discord";
+    # Cemu's window class is the reverse-DNS "info.cemu.Cemu" and only
+    # word-level matching against "Cemu Cubeb" catches it.
+    if [[ "$match" == 0 ]]; then
+      while IFS= read -r candidate; do
+        [[ -n "$(printf '%s' "$candidate" | norm)" ]] || continue
+        if matches "$candidate" "$focused_class"; then
+          # Display name for the OSD toast; candidates are printed in
+          # application.name, media.name, binary order, so the first match
+          # prefers the friendliest name
+          [[ -n "$app_name" ]] || app_name="$candidate"
+          match=1
+          break
+        fi
+      done < <(printf '%s\n' "$props" | awk -F' = ' '
+        /^[[:space:]]*\*?[[:space:]]*application.name[[:space:]]*=/ ||
+        /^[[:space:]]*\*?[[:space:]]*media.name[[:space:]]*=/ ||
+        /^[[:space:]]*\*?[[:space:]]*application.process.binary[[:space:]]*=/ {
+          sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2
+        }')
+    fi
+    # PID matches never went through the candidate loop: take the friendliest
+    # prop directly (same preference order) for the OSD toast
+    if [[ "$match" == 1 && -z "$app_name" ]]; then
+      app_name="$(printf '%s\n' "$props" | awk -F' = ' '
+        /^[[:space:]]*\*?[[:space:]]*application.name[[:space:]]*=/ ||
+        /^[[:space:]]*\*?[[:space:]]*media.name[[:space:]]*=/ ||
+        /^[[:space:]]*\*?[[:space:]]*application.process.binary[[:space:]]*=/ {
+          sub(/^[[:space:]]*"/, "", $2); sub(/"$/, "", $2); print $2; exit
+        }')"
+    fi
     [[ "$match" == 1 ]] || continue
     matching_ids="$matching_ids $id"
   done < <(wpctl status 2>/dev/null | awk '
