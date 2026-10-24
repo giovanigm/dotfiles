@@ -32,9 +32,23 @@ hl.monitor({
 hl.monitor({
 	output = "SUNSHINE-1",
 	mode = "1920x1080@60",
-	position = "auto",
+	-- Off the real layout on purpose: the output must exist for Sunshine
+	-- (wlr capture resolves output_name at startup), but it must not be
+	-- reachable by the cursor or sit next to the physical monitor.
+	position = "10000x0",
 	scale = 1,
 })
+
+-- Keep user workspaces on the physical monitor, matched by EDID so the rules
+-- follow the monitor when the cable changes (DP-5 <-> HDMI-A-2). SUNSHINE-1
+-- gets a dedicated workspace 99 and never owns a user workspace.
+local physicalMonitor = "desc:ASUSTek COMPUTER INC VG27AQL1A M1LMQS012381"
+for i = 1, 10 do
+	local rule = { workspace = tostring(i), monitor = physicalMonitor }
+	if i == 1 then rule.default = true end
+	hl.workspace_rule(rule)
+end
+hl.workspace_rule({ workspace = "99", monitor = "SUNSHINE-1", default = true })
 
 ---------------------
 ---- MY PROGRAMS ----
@@ -328,13 +342,15 @@ hl.bind(mainMod .. " + up", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down", hl.dsp.focus({ direction = "down" }))
 
 -- Switch workspaces: 1-4 with mainMod + CTRL + [1-4], 5-10 with mainMod + [5-0]
+-- on_current_monitor = true (xmonad-style): never warp focus to the Sunshine
+-- virtual output; bring the workspace to the monitor currently in use instead.
 for i = 1, 4 do
-	hl.bind(mainMod .. " + " .. i, hl.dsp.focus({ workspace = i }))
+	hl.bind(mainMod .. " + " .. i, hl.dsp.focus({ workspace = i, on_current_monitor = true }))
 	hl.bind(secondMod .. " + " .. i, hl.dsp.window.move({ workspace = i }))
 end
 for i = 5, 10 do
 	local key = i % 10 -- 10 maps to key 0
-	hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
+	hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i, on_current_monitor = true }))
 	hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
 end
 

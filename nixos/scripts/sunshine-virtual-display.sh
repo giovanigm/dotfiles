@@ -63,6 +63,49 @@ ensure_headless() {
   set_mode 1920 1080 60
 }
 
+physical_monitor() {
+  hyprctl -j monitors | jq -r --arg h "$headless" \
+    '[.[] | select(.name != $h)
+         | select((.name | startswith("SUNSHINE-") or startswith("HEADLESS-")) | not)
+         | select(.disabled != true)][0].name // empty'
+}
+
+wait_physical() {
+  for _ in $(seq 1 50); do
+    [[ -n "$(physical_monitor)" ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+# Move every user workspace off the virtual output and park it on workspace 99.
+# Needed at login (the headless is created before the physical monitor and can
+# grab a low workspace ID) and after a stream (Hyprland moves the physical
+# monitor's workspaces onto the headless while it is disconnected).
+rehome() {
+  local target previous id
+  target="$(physical_monitor)"
+  [[ -n "$target" ]] || return 0
+  previous="$(hyprctl activeworkspace -j | jq -r '.id')"
+
+  while IFS= read -r id; do
+    [[ -n "$id" ]] || continue
+    hyprctl eval "hl.dispatch(hl.dsp.workspace.move({ workspace = $id, monitor = \"$target\" }))" >/dev/null 2>&1 || true
+  done < <(hyprctl -j workspaces | jq -r --arg h "$headless" \
+    '.[] | select(.monitor == $h and .id > 0 and .id != 99) | .id')
+
+  # A disabled output cannot be captured, so SUNSHINE-1 stays enabled; parking
+  # it on 99 (and off-grid) keeps it from stealing workspace numbers or focus.
+  hyprctl eval "hl.dispatch(hl.dsp.focus({ monitor = \"$headless\" }))" >/dev/null 2>&1 || true
+  hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = 99 }))" >/dev/null 2>&1 || true
+  hyprctl eval "hl.dispatch(hl.dsp.focus({ monitor = \"$target\" }))" >/dev/null 2>&1 || true
+  hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = $previous }))" >/dev/null 2>&1 || true
+}
+
+park_offscreen() {
+  hyprctl eval "hl.monitor({ output = \"$headless\", position = \"10000x0\" })" >/dev/null 2>&1 || true
+}
+
 upsert() {
   local key="$1" value="$2"
   mkdir -p "$(dirname "$conf")"
@@ -84,6 +127,13 @@ save_state() {
 setup() {
   log "setup output=$headless"
   ensure_headless
+  # The headless output is created before the physical monitor is configured
+  # at login, so it can grab a low workspace ID; rehome once the real monitor
+  # is up (best-effort, bounded so Sunshine is not delayed for long).
+  if wait_physical; then
+    rehome
+  fi
+  park_offscreen
   upsert capture wlr
   upsert output_name "$headless"
   upsert encoder nvenc
@@ -162,6 +212,11 @@ disconnect() {
     hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = $previous }))" >/dev/null 2>&1 || true
   fi
 
+  # set_mode above forces position=auto; restore the off-grid position and
+  # park the headless again so it cannot keep any workspace or be reached.
+  rehome >/dev/null 2>&1 || true
+  park_offscreen
+
   log "disconnect done: physical monitors restored"
 }
 
@@ -169,8 +224,9 @@ case "${1:-}" in
   setup) setup ;;
   connect) connect ;;
   disconnect) disconnect ;;
+  rehome) rehome ;;
   *)
-    echo "usage: $0 {setup|connect|disconnect}" >&2
+    echo "usage: $0 {setup|connect|disconnect|rehome}" >&2
     exit 2
     ;;
 esac
