@@ -6,7 +6,7 @@
   users.users."giovani" = {
     isNormalUser = true;
     description = "giovani";
-    extraGroups = [ "networkmanager" "wheel" "docker" "i2c" "input" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "i2c" "input" "uinput" ];
     shell = pkgs.zsh;
     hashedPasswordFile = "/persist/passwords/giovani";
   };

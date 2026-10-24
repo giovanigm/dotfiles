@@ -13,6 +13,7 @@
     ./configurations/ddcutil.nix
     ./configurations/fans.nix
     ./configurations/audio.nix
+    ./configurations/sunshine.nix
     ./configurations/docker.nix
     ./configurations/fonts.nix
     ./configurations/packages/apps.nix

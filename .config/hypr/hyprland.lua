@@ -26,6 +26,16 @@ hl.monitor({
 	scale = "auto",
 })
 
+-- Sunshine virtual display. Inert until the sunshine-headless service creates
+-- the output; kept here so config reloads do not drop it. Per-client modes are
+-- applied at runtime by scripts/sunshine-virtual-display.sh.
+hl.monitor({
+	output = "SUNSHINE-1",
+	mode = "1920x1080@60",
+	position = "auto",
+	scale = 1,
+})
+
 ---------------------
 ---- MY PROGRAMS ----
 ---------------------
