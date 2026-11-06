@@ -1,18 +1,28 @@
 #!/usr/bin/env bash
 # Hyprland headless output used as Sunshine's virtual display.
 #
-#   setup       create the headless output and enforce the structural Sunshine
-#               settings (capture method, output name, prep commands)
-#   connect     make the headless output the only active monitor, at the
-#               client's requested mode, showing the workspace the user was on
-#               (run by Sunshine before launching an app)
-#   disconnect  re-enable the physical monitors and restore the local workspace
-#               (run by Sunshine after the app exits)
+#   setup       write the structural Sunshine settings (capture method, output
+#               name, prep commands) and drop a stale headless output
+#   connect     create the headless output, make it the only active monitor at
+#               the client's requested mode, showing the workspace the user was
+#               on (run by Sunshine before launching an app)
+#   disconnect  re-enable the physical monitors, restore the local workspace and
+#               schedule the removal of the headless output
+#   cleanup     remove the headless output once no stream is running
 #
 # Hyprland 0.55 runs the Lua config manager, where `hyprctl keyword` is not
 # available: monitor/workspace changes go through `hyprctl eval` + hl.* API.
-# The headless output must exist before Sunshine starts: wlr capture resolves
-# output_name only once, at startup.
+#
+# The output exists only while a stream is active. Sunshine resolves
+# output_name when the capture thread starts (once per stream, after the
+# global prep commands ran), not when Sunshine starts, so creating it in
+# connect is early enough. An always-enabled virtual monitor is actively
+# harmful: when the physical monitor disappears (standby, DPMS, power button)
+# Hyprland picks SUNSHINE-1 as the backup output, warps the cursor to its
+# center (off the 10000x0 parking spot) and moves every workspace onto it.
+# When the physical monitor comes back, focus and cursor stay on the virtual
+# output, so SUPER+1..0 (on_current_monitor) move workspaces where they cannot
+# be seen.
 
 set -euo pipefail
 
@@ -20,6 +30,7 @@ headless="SUNSHINE-1"
 state="${XDG_RUNTIME_DIR:-/tmp}/sunshine-virtual-display.state"
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/sunshine/sunshine.conf"
 logfile="${XDG_RUNTIME_DIR:-/tmp}/sunshine-virtual-display.log"
+self="$(readlink -f "$0")"
 
 log() {
   printf '%s %s\n' "$(date -Is)" "$*" >>"$logfile"
@@ -70,18 +81,26 @@ physical_monitor() {
          | select(.disabled != true)][0].name // empty'
 }
 
-wait_physical() {
-  for _ in $(seq 1 50); do
-    [[ -n "$(physical_monitor)" ]] && return 0
-    sleep 0.1
-  done
-  return 1
+session_locked() {
+  local sid="${XDG_SESSION_ID:-}" id _uid user _seat _leader class
+  # Sunshine's user service environment does not carry XDG_SESSION_ID; find
+  # the graphical session of this user instead.
+  if [[ -z "$sid" ]]; then
+    while read -r id _uid user _seat _leader class _; do
+      if [[ "$user" == "${USER:-}" && "$class" == "user" ]]; then
+        sid="$id"
+        break
+      fi
+    done < <(loginctl list-sessions --no-legend 2>/dev/null || true)
+  fi
+  [[ -n "$sid" ]] || return 1
+  [[ "$(loginctl show-session "$sid" -P LockedHint 2>/dev/null || true)" == "yes" ]]
 }
 
 # Move every user workspace off the virtual output and park it on workspace 99.
-# Needed at login (the headless is created before the physical monitor and can
-# grab a low workspace ID) and after a stream (Hyprland moves the physical
-# monitor's workspaces onto the headless while it is disconnected).
+# Needed after a stream (Hyprland moves the physical monitor's workspaces onto
+# the headless while it is disabled) and as manual recovery after a cable swap
+# (the headless can receive stray workspaces while it exists).
 rehome() {
   local target previous id
   target="$(physical_monitor)"
@@ -125,15 +144,13 @@ save_state() {
 }
 
 setup() {
-  log "setup output=$headless"
-  ensure_headless
-  # The headless output is created before the physical monitor is configured
-  # at login, so it can grab a low workspace ID; rehome once the real monitor
-  # is up (best-effort, bounded so Sunshine is not delayed for long).
-  if wait_physical; then
-    rehome
+  log "setup: config only (the output is created on connect)"
+  # Older generations created the output at login. Drop it unless a stream is
+  # running right now (restarting this unit mid-stream must not kill capture).
+  if [[ ! -f "$state" ]] && hyprctl -j monitors >/dev/null 2>&1 && has_headless; then
+    hyprctl output remove "$headless" >/dev/null 2>&1 || true
+    log "setup: removed stale $headless"
   fi
-  park_offscreen
   upsert capture wlr
   upsert output_name "$headless"
   upsert encoder nvenc
@@ -213,20 +230,86 @@ disconnect() {
   fi
 
   # set_mode above forces position=auto; restore the off-grid position and
-  # park the headless again so it cannot keep any workspace or be reached.
+  # park the headless again so it cannot keep any workspace or be reached
+  # during the short window before cleanup removes it.
   rehome >/dev/null 2>&1 || true
   park_offscreen
 
+  # SUNSHINE-1 must not outlive the stream: an idle virtual monitor becomes
+  # Hyprland's backup output when the physical monitor disappears, which warps
+  # the cursor off-screen and moves workspaces onto it. Removing it right here
+  # would race the capture thread that is still winding down, so defer.
+  schedule_cleanup
+
   log "disconnect done: physical monitors restored"
+}
+
+# Remove the virtual output once every stream has torn down. Runs detached a
+# few seconds after disconnect, because Sunshine's undo command can fire while
+# its capture thread is still running. Returns 1 when it should be retried.
+cleanup() {
+  # A new stream already started (connect re-created the state file).
+  [[ -f "$state" ]] && return 0
+
+  has_headless || return 0
+
+  # Removing an output while the session is locked can break the
+  # ext-session-lock surfaces; retry later.
+  if session_locked; then
+    log "cleanup deferred: session locked"
+    return 1
+  fi
+
+  # SUNSHINE-1 is the only monitor while the physical one is away; removing it
+  # would leave Hyprland without outputs. Retry later.
+  if [[ -z "$(physical_monitor)" ]]; then
+    log "cleanup deferred: no physical monitor"
+    return 1
+  fi
+
+  local cursor x y
+  cursor="$(hyprctl cursorpos 2>/dev/null || true)"
+
+  if ! hyprctl output remove "$headless" >/dev/null 2>&1; then
+    log "cleanup: could not remove $headless"
+    return 0
+  fi
+
+  # Removing a monitor warps the cursor to the backup monitor's center; put it
+  # back where it was.
+  if [[ "$cursor" =~ ^(-?[0-9]+),[[:space:]]*(-?[0-9]+)$ ]]; then
+    x="${BASH_REMATCH[1]}"
+    y="${BASH_REMATCH[2]}"
+    hyprctl eval "hl.dispatch(hl.dsp.cursor.move({ x = $x, y = $y }))" >/dev/null 2>&1 || true
+  fi
+
+  log "cleanup: removed $headless"
+  return 0
+}
+
+schedule_cleanup() {
+  setsid "$self" cleanup-after >/dev/null 2>&1 &
+}
+
+cleanup-after() {
+  local delay="${1:-10}"
+  sleep "$delay"
+  for _ in $(seq 1 20); do
+    cleanup && return 0
+    sleep 30
+  done
+  log "cleanup: giving up for now (will retry on the next stream/setup)"
 }
 
 case "${1:-}" in
   setup) setup ;;
   connect) connect ;;
   disconnect) disconnect ;;
+  cleanup) cleanup ;;
+  cleanup-after) cleanup-after "${2:-10}" ;;
   rehome) rehome ;;
   *)
-    echo "usage: $0 {setup|connect|disconnect|rehome}" >&2
+    echo "usage: $0 {setup|connect|disconnect|cleanup|cleanup-after [delay]|rehome}" >&2
     exit 2
     ;;
 esac

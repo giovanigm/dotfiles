@@ -26,15 +26,17 @@ hl.monitor({
 	scale = "auto",
 })
 
--- Sunshine virtual display. Inert until the sunshine-headless service creates
--- the output; kept here so config reloads do not drop it. Per-client modes are
--- applied at runtime by scripts/sunshine-virtual-display.sh.
+-- Sunshine virtual display. Inert while idle: the output is created per stream
+-- by scripts/sunshine-virtual-display.sh connect and removed once the stream
+-- tears down, so a plain `hyprctl reload` cannot race it. The rule stays so
+-- creations and reloads get the off-grid position. Per-client modes are applied
+-- at runtime by that script.
 hl.monitor({
 	output = "SUNSHINE-1",
 	mode = "1920x1080@60",
-	-- Off the real layout on purpose: the output must exist for Sunshine
-	-- (wlr capture resolves output_name at startup), but it must not be
-	-- reachable by the cursor or sit next to the physical monitor.
+	-- Off the real layout on purpose: while the output exists it must not be
+	-- reachable by the cursor or sit next to the physical monitor (see the
+	-- backup-monitor quirk in CLAUDE.md).
 	position = "10000x0",
 	scale = 1,
 })

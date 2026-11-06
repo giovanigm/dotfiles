@@ -1,7 +1,8 @@
 { config, pkgs, lib, ... }:
 
 let
-  # Creates HEADLESS-1 in Hyprland and maintains Sunshine's structural config.
+  # Maintains Sunshine's structural config and manages the SUNSHINE-1 headless
+  # output (created on connect, removed once the stream has torn down).
   # Also used as Sunshine's global prep command (connect/disconnect).
   virtualDisplay = pkgs.writeShellApplication {
     name = "sunshine-virtual-display";
@@ -11,6 +12,8 @@ let
       pkgs.gnugrep
       pkgs.gnused
       pkgs.jq
+      pkgs.systemd # loginctl: deferred cleanup waits while the session is locked
+      pkgs.util-linux # setsid: cleanup must outlive the undo command
     ];
     text = builtins.readFile ../scripts/sunshine-virtual-display.sh;
   };
@@ -41,9 +44,10 @@ in
     # global_prep_cmd into ~/.config/sunshine/sunshine.conf before startup.
   };
 
-  # Must run before Sunshine: wlr capture resolves output_name at startup.
+  # Must run before Sunshine: Sunshine reads its config only at startup.
+  # It no longer creates the output: SUNSHINE-1 only exists during a stream.
   systemd.user.services.sunshine-headless = {
-    description = "Hyprland headless output and Sunshine config for virtual display";
+    description = "Sunshine virtual-display config (output is created per stream)";
     wantedBy = [ "graphical-session.target" ];
     after = [ "graphical-session.target" ];
     before = [ "sunshine.service" ];
