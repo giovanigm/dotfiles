@@ -6,6 +6,7 @@
     ./configurations/boot.nix
     ./configurations/networking.nix
     ./configurations/locale.nix
+    ./configurations/logitech.nix
     ./configurations/desktop.nix
     ./configurations/drm-debug.nix
     ./configurations/filesystems.nix
